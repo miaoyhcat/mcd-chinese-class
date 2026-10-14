@@ -66,18 +66,15 @@ input[type=text]:focus{outline:none;border-color:var(--gold)}
 .title{text-align:center;font-family:var(--serif);font-size:clamp(24px,4.4vw,34px);
   font-weight:700;letter-spacing:.18em}
 .author{text-align:center;margin-top:9px;font-size:13.5px;color:var(--dim);letter-spacing:.14em}
+.style-tag{text-align:center;margin-top:7px;font-size:11.5px;color:var(--gold);letter-spacing:.2em}
 .note{text-align:center;margin-top:5px;font-size:11.5px;color:var(--mute);letter-spacing:.1em}
 .rule{height:1px;background:var(--line);margin:clamp(20px,3.4vw,32px) 0}
 .body p{font-family:var(--serif);font-size:clamp(14.5px,2vw,16px);line-height:2.15;
   text-indent:2em;margin-bottom:.9em;text-align:justify}
-.body p.open{text-indent:2em;color:var(--red)}
+.body p.open{text-indent:2em}   /* 首段不再特殊着色：红在有的课文里指原文、有的指改写，容易误解 */
 .body p.end{color:var(--dim);font-style:italic}
-.qhead{text-align:center;font-family:var(--serif);font-size:15px;font-weight:700;
-  letter-spacing:.5em;color:var(--ink);margin:clamp(24px,4vw,38px) 0 clamp(14px,2vw,20px)}
-.qs{counter-reset:q}
-.qs p{font-family:var(--serif);font-size:clamp(13.5px,1.85vw,15px);line-height:2;
-  margin-bottom:.7em;padding-left:1.9em;position:relative;text-align:justify}
-.qs p::before{counter-increment:q;content:counter(q) "．";position:absolute;left:0;color:var(--gold)}
+.theend{margin-top:clamp(20px,3vw,30px);text-align:center;font-family:var(--serif);
+  font-size:12px;letter-spacing:.62em;color:var(--mute)}
 .foot{margin-top:clamp(22px,3.4vw,32px);padding-top:16px;border-top:1px solid var(--line);
   font-size:11.5px;color:var(--mute);text-align:center;letter-spacing:.06em}
 .foot b{color:var(--dim);font-weight:500}
@@ -117,6 +114,7 @@ footer a{color:var(--gold)}
     <button class="btn pri" id="go">生 成 课 文</button>
     <button class="btn sec" id="again">换一篇</button>
     <button class="btn sec" id="copy">复制</button>
+    <button class="btn sec" id="img">生成课文图片</button>
   </div>
 
   <article id="lesson"></article>
@@ -136,19 +134,35 @@ footer a{color:var(--gold)}
 const LESSONS = /*__LESSONS__*/;
 const FALLBACK = /*__FALLBACKS__*/;
 
-/* ── 与 mcd_chinese.py 保持一致的分类逻辑 ── */
+/* ── 与 mcd_chinese.py 保持一致的分类逻辑 ──
+   这几张词表由 build_web.py 从 mcd_chinese.py 注入，不在网页这边单独维护，
+   免得两边慢慢漂移（之前就漂过一次）。 */
+const DRINK_EXACT = /*__DRINK_EXACT__*/;
 const DRINK_WORDS = /*__DRINK_WORDS__*/;
-// 注意别放「鸡腿」——「板烧鸡腿堡」「麦辣鸡腿堡」是汉堡，会被误判成小食
+const DRINK_SUFFIX = /*__DRINK_SUFFIX__*/;
 const SIDE_WORDS  = /*__SIDE_WORDS__*/;
+const SIDE_SUFFIX = /*__SIDE_SUFFIX__*/;
 const MAIN_MARKERS = /*__MAIN_MARKERS__*/;
 const SIZE_PREFIX = /*__SIZE_PREFIX__*/;
 
 const stripSize = s => { for (const p of SIZE_PREFIX)
   if (s.startsWith(p) && s.length > p.length + 1) return s.slice(p.length); return s; };
 
+/* 三级判定：整名 → 子串 → 后缀。
+   只用子串会误伤：旧版 DRINK_WORDS 里有「水」，「水果派」就被当成了饮品。 */
+function isDrink(name){
+  if (DRINK_EXACT.includes(name)) return true;
+  if (DRINK_WORDS.some(w => name.includes(w))) return true;
+  return DRINK_SUFFIX.some(s => name.endsWith(s));
+}
+function isSide(name){
+  if (SIDE_WORDS.some(w => name.includes(w))) return true;
+  return SIDE_SUFFIX.some(s => name.endsWith(s));
+}
+
 function classify(items){
   // 与 mcd_chinese.py 的 classify() 保持一致：三者互不重叠
-  const drinks = items.filter(i => DRINK_WORDS.some(w => i.includes(w)));
+  const drinks = items.filter(isDrink);
   const mains = [], sides = [];
   for (const i of items){
     if (drinks.includes(i)) continue;
@@ -179,9 +193,11 @@ function fields(items){
 const fill = (t, f) => t.replace(/\{(\w+)\}/g, (m, k) => (k in f ? f[k] : m));
 
 function lessonNumber(items){
+  // 必须和 Python 的 lesson_number() 结果一致。
+  // 注意用 for...of + codePointAt(0) 走码点 —— charCodeAt 取的是 UTF-16 码元，
+  // 遇到 emoji 这类非 BMP 字符会被拆成两个代理项，算出来的课号和 Python 对不上。
   let h = 0;
-  const s = items.join("|");
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 999983;
+  for (const ch of items.join("|")) h = (h * 31 + ch.codePointAt(0)) % 999983;
   return h % 999 + 1;
 }
 
@@ -190,10 +206,10 @@ function compose(items, lesson){
   return {
     no: lessonNumber(items),
     title: lesson.title, author: lesson.author,
+    tag: lesson.tag || "",
     opening: fill(lesson.opening, f),
     body: lesson.body.map(p => fill(p, f)),
     ending: lesson.ending ? fill(lesson.ending, f) : "",
-    questions: lesson.questions.map(q => fill(q, f)),
     items,
   };
 }
@@ -246,25 +262,48 @@ function updPicked(){
 $("custom").addEventListener("input", updPicked);
 
 /* ── 生 成 ── */
+
+/* 一律用 createElement + textContent 建节点。
+   饭品名是从输入框来的、课文正文是从模板来的，都不能拼进 innerHTML ——
+   拼了就等于把注入入口敞开。textContent 天然免疫，比手写转义可靠。 */
+function el(tag, cls, text){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
 function render(){
   let items = currentItems();
   if (!items.length) items = ["巨无霸","中薯条","可乐"];
   const d = compose(items, LESSONS[lessonIdx]);
-  $("lesson").innerHTML = `
-    <div class="lessno">麦门语文课 · 第 ${String(d.no).padStart(3,"0")} 课</div>
-    <div class="title">${d.title}</div>
-    <div class="author">${d.author}</div>
-    <div class="note">（根据你的订单改编）</div>
-    <div class="rule"></div>
-    <div class="body">
-      <p class="open">${d.opening}</p>
-      ${d.body.map(p => `<p>${p}</p>`).join("")}
-      ${d.ending ? `<p class="end">${d.ending}</p>` : ""}
-    </div>
-    <div class="qhead">课 后 习 题</div>
-    <div class="qs">${d.questions.map(q => `<p>${q}</p>`).join("")}</div>
-    <div class="foot">本课订单：<b>${d.items.join("、")}</b></div>`;
-  $("lesson").classList.add("show");
+
+  const box = $("lesson");
+  box.textContent = "";                       // 清空，不用 innerHTML
+  box.classList.remove("show");
+
+  box.appendChild(el("div", "lessno",
+    `麦门语文课 · 第 ${String(d.no).padStart(3, "0")} 课`));
+  box.appendChild(el("div", "title", d.title));
+  box.appendChild(el("div", "author", d.author));
+  if (d.tag) box.appendChild(el("div", "style-tag", d.tag));
+  box.appendChild(el("div", "note", "（根据你的订单改编）"));
+  box.appendChild(el("div", "rule"));
+
+  const body = el("div", "body");
+  body.appendChild(el("p", "open", d.opening));
+  d.body.forEach(p => body.appendChild(el("p", null, p)));
+  if (d.ending) body.appendChild(el("p", "end", d.ending));
+  box.appendChild(body);
+
+  box.appendChild(el("div", "theend", "课 文 完"));
+
+  const foot = el("div", "foot");
+  foot.appendChild(document.createTextNode("本课订单："));
+  foot.appendChild(el("b", null, d.items.join("、")));
+  box.appendChild(foot);
+
+  box.classList.add("show");
 }
 
 function toast(msg){
@@ -281,18 +320,172 @@ $("again").onclick = () => {
   render();
 };
 
+/* 复制的内容和页面显示保持一致：标题/作者/文体 + 正文 + 结尾 */
+function plainText(d){
+  const L = [`《${d.title}》`, d.author];
+  if (d.tag) L.push(d.tag);
+  L.push("", d.opening, "");
+  d.body.forEach(p => L.push(p, ""));
+  if (d.ending) L.push(d.ending, "");
+  L.push("课文完", "", `本课订单：${d.items.join("、")}`,
+         "", "—— 麦门语文课 · 把麦当劳订单改写成语文课本");
+  return L.join("\n");
+}
+
+function currentDoc(){
+  if (!$("lesson").classList.contains("show")) return null;
+  let items = currentItems();
+  if (!items.length) items = ["巨无霸","中薯条","可乐"];
+  return compose(items, LESSONS[lessonIdx]);
+}
+
 $("copy").onclick = async () => {
-  const el = $("lesson");
-  if (!el.classList.contains("show")) { toast("先生成一篇吧"); return; }
-  const txt = el.innerText.replace(/\n{3,}/g, "\n\n").trim();
+  const d = currentDoc();
+  if (!d) { toast("先生成一篇吧"); return; }
+  const txt = plainText(d);
   try {
     await navigator.clipboard.writeText(txt);
     toast("已复制，去发给朋友吧");
   } catch {
-    const r = document.createRange(); r.selectNodeContents(el);
-    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
-    toast("已选中，按 Ctrl/⌘+C 复制");
+    // 老浏览器 / 非安全上下文：退回到选区复制
+    const ta = document.createElement("textarea");
+    ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); toast("已复制"); }
+    catch { toast("复制失败，请手动选中"); }
+    document.body.removeChild(ta);
   }
+};
+
+/* ── 导出课文图片 ──
+   全部在浏览器里用 Canvas 画，不请求任何外部服务 —— 订单内容不出本机。
+   竖版 1080 宽，适配手机分享；太长就分页，避免把字缩到看不清。 */
+const IMG = {
+  w: 1080, pad: 92, maxH: 3600,
+  noSize: 24, titleSize: 68, authorSize: 32, tagSize: 27,
+  bodySize: 35, lineH: 64, paraGap: 22, footSize: 25,
+  bg: "#FBF9F4", ink: "#1E2128", dim: "#5C6169", mute: "#8B8F99",
+  gold: "#B08A2E", red: "#9E3B32",
+  serif: '"Noto Serif SC","Songti SC","SimSun",serif',
+  sans: '-apple-system,"PingFang SC","Microsoft YaHei",sans-serif',
+};
+
+function wrapCJK(ctx, text, maxW, firstIndent){
+  // 中文按字符断行；for...of 走码点，emoji 不会被拆成半个
+  const out = [];
+  let cur = "";
+  let limit = maxW - (firstIndent || 0);
+  for (const ch of text){
+    const t = cur + ch;
+    if (ctx.measureText(t).width > limit && cur){
+      out.push(cur); cur = ch; limit = maxW;
+    } else cur = t;
+  }
+  if (cur) out.push(cur);
+  return out.length ? out : [""];
+}
+
+function buildPages(d){
+  const c = document.createElement("canvas");
+  const ctx = c.getContext("2d");
+  const maxW = IMG.w - IMG.pad * 2;
+
+  ctx.font = `${IMG.bodySize}px ${IMG.serif}`;
+  const indent = IMG.bodySize * 2;
+  const blocks = [];
+  blocks.push({ kind: "p", lines: wrapCJK(ctx, d.opening, maxW, indent), open: true });
+  d.body.forEach(t => blocks.push({ kind: "p", lines: wrapCJK(ctx, t, maxW, indent) }));
+  if (d.ending) blocks.push({ kind: "p", lines: wrapCJK(ctx, d.ending, maxW, indent), end: true });
+
+  // 按 maxH 切页
+  const headH = IMG.pad + IMG.noSize + 30 + IMG.titleSize + 26 + IMG.authorSize
+              + (d.tag ? IMG.tagSize + 16 : 0) + 40 + 30;
+  const footH = 26 + IMG.lineH + IMG.pad;
+  const pages = [];
+  let cur = [], used = headH;
+  for (const b of blocks){
+    let h = b.lines.length * IMG.lineH + IMG.paraGap;
+    if (used + h + footH > IMG.maxH && cur.length){ pages.push(cur); cur = []; used = headH; }
+    // 单段就超一页的极端情况：硬切
+    while (used + h + footH > IMG.maxH){
+      const room = Math.max(1, Math.floor((IMG.maxH - footH - used) / IMG.lineH));
+      cur.push({ ...b, lines: b.lines.slice(0, room), cut: true });
+      b = { ...b, lines: b.lines.slice(room), open: false };
+      h = b.lines.length * IMG.lineH + IMG.paraGap;
+      pages.push(cur); cur = []; used = headH;
+    }
+    cur.push(b); used += h;
+  }
+  if (cur.length || !pages.length) pages.push(cur);
+  return { pages, headH, footH, maxW, indent };
+}
+
+function drawPage(d, page, meta, idx, total){
+  const H = Math.min(IMG.maxH, meta.headH + page.reduce((s, b) =>
+    s + b.lines.length * IMG.lineH + IMG.paraGap, 0) + meta.footH + 40);
+  const cvs = document.createElement("canvas");
+  const S = 2;                                  // 2 倍分辨率，手机上更清晰
+  cvs.width = IMG.w * S; cvs.height = H * S;
+  const x = cvs.getContext("2d");
+  x.scale(S, S);
+  x.fillStyle = IMG.bg; x.fillRect(0, 0, IMG.w, H);
+  x.textBaseline = "top";
+  const cx = IMG.w / 2;
+  let y = IMG.pad;
+
+  x.fillStyle = IMG.mute; x.textAlign = "center";
+  x.font = `${IMG.noSize}px ${IMG.sans}`;
+  const noTxt = `麦门语文课 · 第 ${String(d.no).padStart(3, "0")} 课`
+              + (total > 1 ? `　(${idx}/${total})` : "");
+  x.fillText(noTxt, cx, y); y += IMG.noSize + 30;
+
+  x.fillStyle = IMG.ink; x.font = `700 ${IMG.titleSize}px ${IMG.serif}`;
+  x.fillText(d.title, cx, y); y += IMG.titleSize + 26;
+
+  x.fillStyle = IMG.dim; x.font = `${IMG.authorSize}px ${IMG.serif}`;
+  x.fillText(d.author, cx, y); y += IMG.authorSize + (d.tag ? 16 : 0);
+  if (d.tag){
+    x.fillStyle = IMG.gold; x.font = `${IMG.tagSize}px ${IMG.sans}`;
+    x.fillText(d.tag, cx, y); y += IMG.tagSize;
+  }
+  y += 44;
+
+  x.textAlign = "left"; x.font = `${IMG.bodySize}px ${IMG.serif}`;
+  for (const b of page){
+    x.fillStyle = b.end ? IMG.dim : IMG.ink;
+    b.lines.forEach((ln, i) => {
+      x.fillText(ln, IMG.pad + (i === 0 ? meta.indent : 0), y);
+      y += IMG.lineH;
+    });
+    y += IMG.paraGap;
+  }
+
+  y = H - IMG.pad - IMG.lineH;
+  x.textAlign = "center"; x.fillStyle = IMG.mute; x.font = `${IMG.footSize}px ${IMG.sans}`;
+  x.fillText(`本课订单：${d.items.join("、")}　·　麦门语文课`, cx, y);
+  // 注：只写餐品名，不带订单号、时间、门店等可识别信息
+  return cvs;
+}
+
+$("img").onclick = () => {
+  const d = currentDoc();
+  if (!d) { toast("先生成一篇吧"); return; }
+  const meta = buildPages(d);
+  const total = meta.pages.length;
+  let n = 0;
+  const next = () => {
+    if (n >= total) { toast(total > 1 ? `已导出 ${total} 张` : "已导出图片"); return; }
+    const cvs = drawPage(d, meta.pages[n], meta, n + 1, total);
+    cvs.toBlob(b => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = `麦门语文课_${d.title}${total > 1 ? `_${n + 1}` : ""}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      n++; setTimeout(next, 500);      // 间隔一下，免得浏览器把连续下载拦掉
+    }, "image/png");
+  };
+  next();
 };
 
 updPicked();
