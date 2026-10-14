@@ -1,7 +1,6 @@
 __pycache__/
 *.pyc
-_test_*.js
+_exported.png
 _shot_*.js
-demo-desktop.png
-demo-mobile.png
-lesson-hetang.png
+_probe_mcp.py
+_orderlist_raw.json

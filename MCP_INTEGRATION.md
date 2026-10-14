@@ -21,6 +21,27 @@
 `initialize → notifications/initialized → tools/call` 的完整握手。
 因此整个 Skill 可以脱离 AI 客户端独立运行。
 
+### 接入配置示例
+
+仓库里的 [`mcp-config.example.json`](mcp-config.example.json) 可直接粘进支持
+Streamable HTTP 的 MCP 客户端（WorkBuddy / Cherry Studio / Cursor / Trae 等）：
+
+```json
+{
+  "mcpServers": {
+    "mcd-mcp": {
+      "type": "streamablehttp",
+      "url": "https://mcp.mcd.cn",
+      "headers": { "Authorization": "Bearer YOUR_MCP_TOKEN_HERE" }
+    }
+  }
+}
+```
+
+**这份示例是核对过的，不是照抄文档**：`url` 与 `Authorization` 的写法，
+本项目客户端在 2026-10-15 用真实 Token 走通过（握手成功、`tools/list`
+返回 35 个工具）。文件里只有占位符，不含任何真实凭据。
+
 ---
 
 ## 二、使用的 Tool

@@ -24,15 +24,41 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 LESSONS_PATH = HERE / "lessons.json"
 
-# 常见餐品的归类，用于判断哪件是主食 / 小食 / 饮品
-DRINK_WORDS = ("可乐", "雪碧", "芬达", "咖啡", "拿铁", "美式", "茶", "奶茶",
-               "果汁", "橙汁", "豆浆", "牛奶", "矿泉水", "水")
+# ── 餐品归类 ──
+# 判定按三级优先级走，越具体的规则排越前：
+#   ① 整名精确命中  ② 子串关键词  ③ 后缀命中  ④ 未知兜底（归小食）
+#
+# 为什么不能只用子串：以前 DRINK_WORDS 里有「水」，于是「水果派」被当成饮品。
+# 太短的词（水、茶、派）必须限定匹配方式，否则会误伤别的餐品名。
+DRINK_EXACT = ("水", "矿泉水", "纯净水", "饮用水", "苏打水", "气泡水", "冰水")
+DRINK_WORDS = ("可乐", "雪碧", "芬达", "咖啡", "拿铁", "美式", "奶茶",
+               "果汁", "橙汁", "豆浆", "牛奶")
+DRINK_SUFFIX = ("茶", "水")          # 「柠檬茶」「矿泉水」算，「抹茶派」「水果派」不算
+
 # 注意别放「鸡腿」——「板烧鸡腿堡」「麦辣鸡腿堡」是汉堡，会被误判成小食
-SIDE_WORDS = ("薯条", "鸡块", "鸡翅", "派", "沙拉", "玉米", "洋葱圈",
+SIDE_WORDS = ("薯条", "鸡块", "鸡翅", "沙拉", "玉米", "洋葱圈",
               "冰淇淋", "麦旋风", "新地", "圣代", "蛋挞", "水果")
+SIDE_SUFFIX = ("派",)                # 「苹果派」算小食，「派对盒子」不算
+
 # 汉堡类一律算主食，优先级高于上面的小食词
 # 「巨无霸」「麦香鱼」是汉堡但名字里没有「堡」，得显式列出来
 MAIN_MARKERS = ("堡", "卷", "饭", "粥", "巨无霸", "麦香鱼")
+
+
+def is_drink(name):
+    """是不是饮品。三级判定，避免「水果派」被「水」误伤。"""
+    if name in DRINK_EXACT:
+        return True
+    if any(w in name for w in DRINK_WORDS):
+        return True
+    return any(name.endswith(s) for s in DRINK_SUFFIX)
+
+
+def is_side(name):
+    """是不是小食。"""
+    if any(w in name for w in SIDE_WORDS):
+        return True
+    return any(name.endswith(s) for s in SIDE_SUFFIX)
 
 # 尺寸前缀：用在「金黄的___」这种形容词位置时要去掉，否则读起来别扭
 SIZE_PREFIX = ("超大", "大", "中", "小")
@@ -63,7 +89,7 @@ def classify(items):
     实在找不到主食（比如只点了饮料和甜点）就把第一件非饮品顶上去，
     保证模板里 {main} 一定有值——宁可得出一篇滑稽的课文，也不能渲染出空位。
     """
-    drinks = [i for i in items if any(w in i for w in DRINK_WORDS)]
+    drinks = [i for i in items if is_drink(i)]
     mains, sides = [], []
     for i in items:
         if i in drinks:
@@ -71,11 +97,15 @@ def classify(items):
         if any(w in i for w in MAIN_MARKERS):
             mains.append(i)
         else:
-            sides.append(i)
+            sides.append(i)          # 认不出来的先归小食，不抢主食的位置
     if not mains:
+        # 只点了饮料/甜点这类没有主食的订单：把第一件顶上去当主食。
+        # 同时把它从原来那一组里摘掉，保证三组始终互不重叠 ——
+        # 否则「只点一杯可乐」会让它同时属于主食和饮品。
         first = next((i for i in items if i not in drinks), items[0])
         mains = [first]
         sides = [s for s in sides if s != first]
+        drinks = [d for d in drinks if d != first]
     return mains, sides, drinks
 
 
@@ -150,7 +180,6 @@ def compose(order, lesson, fallbacks):
         "opening": render(lesson["opening"], fields),
         "body": [render(p, fields) for p in lesson["body"]],
         "ending": render(lesson.get("ending", ""), fields),
-        "questions": [render(q, fields) for q in lesson["questions"]],
         "order": order,
     }
 
@@ -168,6 +197,7 @@ def as_text(doc):
         "",
         f"{doc['title']:^{44}}",
         f"{doc['author']:^{42}}",
+        f"{doc.get('tag', ''):^{40}}",
         f"{'（根据你的订单改编）':^{40}}",
         "",
         f"    {doc['opening']}",
@@ -179,11 +209,9 @@ def as_text(doc):
     if doc["ending"]:
         out.append(f"    {doc['ending']}")
         out.append("")
-    out += [BAR, "                  课 后 习 题", BAR]
-    for i, q in enumerate(doc["questions"], 1):
-        out.append(f"    {i}. {q}")
-        out.append("")
     out += [
+        f"{'课文完':^{42}}",
+        "",
         BAR,
         f"  本课订单：{'、'.join(doc['order'])}",
         BAR,
@@ -205,10 +233,8 @@ def as_markdown(doc):
         lines += [p, ""]
     if doc["ending"]:
         lines += [doc["ending"], ""]
-    lines += ["---", "", "## 课后习题", ""]
-    for i, q in enumerate(doc["questions"], 1):
-        lines.append(f"{i}. {q}")
-    lines += ["", "---", "", f"*本课订单：{'、'.join(doc['order'])}*"]
+    lines += ["*课文完*", "", "---", "",
+              f"*本课订单：{'、'.join(doc['order'])}*"]
     return "\n".join(lines)
 
 
@@ -274,49 +300,72 @@ def _pick_latest_order(data):
     alive = [o for o in orders
              if not any(m in str(o.get("orderStatus") or o.get("status") or "").lower()
                         for m in CANCELLED)]
-    pool = alive or orders
-    pool.sort(key=when, reverse=True)
-    return pool[0]
+    # 全部订单都已取消时返回 None，**绝不能退回取消列表** ——
+    # 否则会拿一笔作废的订单生成课文，用户看到的是没吃成的东西。
+    if not alive:
+        return None
+    alive.sort(key=when, reverse=True)
+    return alive[0]
 
 
-def _lines_of(order):
-    """从一笔订单里取出餐品名（去重保序）。
+def _lines_with_qty(order):
+    """从一笔订单里取出 [(餐品名, 份数), ...]，同名合并，按出现顺序。
 
     套餐要把 comboItemList 里的子项也捞出来 —— 否则点一份「巨无霸套餐」，
     课文里只会出现套餐名，看不到里面的薯条和可乐，分类会全落到主食上。
+    子项的名字已经包含在套餐名里的（「巨无霸」⊂「巨无霸套餐」）跳过，避免重复。
+
+    套餐内容**只按接口返回的 comboItemList 取**，不凭名字猜 ——
+    「巨无霸套餐」里到底有没有薯条，以接口数据为准。
     """
     raw_lines = order.get("orderProductList") or order.get("products") or []
-    names = []
+    if not isinstance(raw_lines, list):
+        raw_lines = []
 
-    def add(n):
+    pairs = []          # [(name, qty)]，保持顺序，同名在后面合并
+
+    def add(n, qty):
         n = str(n or "").strip()
+        try:
+            q = int(qty or 1)
+        except (TypeError, ValueError):
+            q = 1
         if n:
-            names.append(n)
+            pairs.append((n, max(1, q)))
 
-    for it in (raw_lines if isinstance(raw_lines, list) else []):
+    for it in raw_lines:
         if not isinstance(it, dict):
             continue
         parent = str(it.get("productName") or it.get("name") or "").strip()
-        add(parent)
-        # 套餐子项。名字已经包含在套餐名里的就跳过——
-        # 「巨无霸」⊂「巨无霸套餐」，重复列出来课文里会啰嗦。
+        qty = it.get("quantity")
+        add(parent, qty)
         for sub in (it.get("comboItemList") or []):
             if isinstance(sub, dict):
                 sn = str(sub.get("productName") or sub.get("name") or "").strip()
                 if sn and sn not in parent:
-                    add(sn)
+                    # 套餐子项的份数一般跟套餐走，接口没给就按 1 算
+                    add(sn, sub.get("quantity") or 1 if sub.get("quantity") else qty)
 
-    if not names and not any(isinstance(i, dict) and (i.get("productName") or i.get("name"))
-                             for i in raw_lines if isinstance(raw_lines, list)):
-        # 一个名字都没取到，交给上层去打原始结构
-        return []
+    merged = {}
+    order_out = []
+    for n, q in pairs:
+        if n not in merged:
+            merged[n] = q
+            order_out.append(n)
+        else:
+            merged[n] += q
+    return [(n, merged[n]) for n in order_out]
 
-    seen, out = set(), []
-    for n in names:
-        if n not in seen:
-            seen.add(n)
-            out.append(n)
-    return out
+
+def _lines_of(order):
+    """餐品名列表（去重保序）—— 给课文模板用，不含份数。"""
+    return [n for n, _ in _lines_with_qty(order)]
+
+
+def _items_note(order):
+    """把份数拼成一行，份数大于 1 才标出来。"""
+    got = _lines_with_qty(order)
+    return "、".join(f"{n} ×{q}" if q > 1 else n for n, q in got)
 
 
 def _order_meta(order):
@@ -332,6 +381,9 @@ def _order_meta(order):
         if order.get(k) is not None:
             meta.append(f"{order[k]} 元")
             break
+    note = _items_note(order)
+    if note:
+        meta.append(note)          # 份数在这里体现，正文里不带「×2」这种标记
     return " · ".join(meta)
 
 

@@ -41,8 +41,11 @@ def main():
         return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
 
     out = tpl
-    for key, val in [("__DRINK_WORDS__", mc.DRINK_WORDS),
+    for key, val in [("__DRINK_EXACT__", mc.DRINK_EXACT),
+                     ("__DRINK_WORDS__", mc.DRINK_WORDS),
+                     ("__DRINK_SUFFIX__", mc.DRINK_SUFFIX),
                      ("__SIDE_WORDS__", mc.SIDE_WORDS),
+                     ("__SIDE_SUFFIX__", mc.SIDE_SUFFIX),
                      ("__MAIN_MARKERS__", mc.MAIN_MARKERS),
                      ("__SIZE_PREFIX__", mc.SIZE_PREFIX)]:
         out = out.replace(f"/*{key}*/", js(list(val)))
@@ -52,8 +55,9 @@ def main():
     out = out.replace("https://github.com/OWNER/REPO", REPO_URL)
 
     # 占位符一个都不能剩 —— 漏掉的话页面会拿空数组静默跑，分类全错却看不出来
-    for leftover in ("__LESSONS__", "__FALLBACKS__", "__DRINK_WORDS__",
-                     "__SIDE_WORDS__", "__MAIN_MARKERS__", "__SIZE_PREFIX__",
+    for leftover in ("__LESSONS__", "__FALLBACKS__", "__DRINK_EXACT__",
+                     "__DRINK_WORDS__", "__DRINK_SUFFIX__", "__SIDE_WORDS__",
+                     "__SIDE_SUFFIX__", "__MAIN_MARKERS__", "__SIZE_PREFIX__",
                      "OWNER/REPO"):
         assert leftover not in out, f"占位符 {leftover} 没替换干净"
 
