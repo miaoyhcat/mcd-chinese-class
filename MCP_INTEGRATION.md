@@ -29,7 +29,7 @@
 
 | Tool | 用途 | 关键入参 | 调用时机 |
 |---|---|---|---|
-| `order-list` | 读取个人历史订单，取出餐品名 | 无 | 仅在用户显式传 `--mcp` 时调用一次 |
+| `order-list` | 读取个人历史订单（近 90 天），取出**最近一笔**的餐品名 | 无 | `--mcp` 时调用一次；`--watch` 时每 N 秒轮询 |
 
 **本项目的核心功能不依赖 MCP。** 网页演示与命令行默认路径（`--demo` / `--items`）
 完全不联网、不需要 Token。MCP 只用来把「手动输入餐品」换成「直接读我的真实订单」，
@@ -67,13 +67,28 @@ READ_ONLY_TOOLS = {
    ├─ 通知：  POST notifications/initialized
    └─ 调用：  POST tools/call  { name: "order-list", arguments: {} }
    │
-   └─ 从返回结构里递归提取餐品名（productName / name / itemName …）
+   └─ 找出最近一笔订单 → 取出其中的餐品名
 ```
 
-`order-list` 的返回结构官方未提供正式 schema，因此 `order_from_mcp()` 采用
-**递归查找 + 多字段名候选**的保守解析：按 `productName` / `name` / `itemName` /
-`mealName` / `skuName` 依次尝试，都匹配不到就把原始返回打印出来供人工对照，
-而不是猜一个结果继续往下跑。
+`order-list` 的返回结构官方未提供正式 schema。本项目按社区联调记录里出现的字段写的解析：
+
+| 层级 | 字段（含别名） |
+|---|---|
+| 外层包装 | `data` / `result` / `records` / `list` / `orderList` / `orders` |
+| 订单 | `orderId`、`createTime` / `orderTime` / `createDate`、`storeName`、`orderStatus` / `status`、`realTotalAmount` / `totalAmount` / `amount` |
+| 餐品行 | `orderProductList` / `products` → `productName` / `name`、`quantity` |
+
+解析策略是**保守**的，三层都做了兼容：
+
+1. **外层包装用递归查找**，不假设固定层数 —— 找到"看起来像订单数组"的那一层就停。
+2. **字段名走别名候选**，任何一项取不到都不报错，只是少一个字段。
+3. **取最近一笔，跳过已取消的**：`orderStatus` 里含「取消 / 关闭 / 退款 / cancel /
+   closed / refund」的订单会被排除；时间字段解析不出来时按"最早"处理，
+   不会因为一个奇怪的格式就把旧订单当成新的。
+4. 完全解析不出来时**打印原始返回并停止**，不猜一个结果继续往下跑。
+
+`--watch` 模式在此基础上做轮询：记住上一次的 `orderId`，出现新的就自动生成课文。
+第一次运行只记录基线、不输出，避免一启动就把你的历史订单当"新订单"念出来。
 
 ---
 
@@ -111,9 +126,12 @@ READ_ONLY_TOOLS = {
 
 ### 未验证（需要真实 Token）
 
-- **`order-list` 的真实返回结构**：本项目没有可供联调的 Token，
-  因此解析逻辑是按字段名候选实现的，未经真实数据验证。
+- **`order-list` 的真实返回结构**：本项目没有可供联调的 Token。
+  字段名来自社区项目的联调记录，解析逻辑已用两份**符合该结构的模拟数据**跑通
+  （含外层包装差异、字段别名、已取消订单过滤、时间排序），但**未接过真实接口**。
   如果实际结构不匹配，程序会打印原始返回并停下，不会静默产出错误结果。
+- **`--watch` 的轮询**：变更检测逻辑（记住 orderId、跳过首次基线）已在代码层实现，
+  同样未经真实订单触发验证。
 - 服务端对 `initialize` / `tools/call` 的具体响应细节
   （如上文第五节所述，客户端对两种响应形态都做了兼容）。
 

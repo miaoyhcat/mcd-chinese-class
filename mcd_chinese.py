@@ -18,6 +18,7 @@ import argparse
 import json
 import random
 import sys
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -211,47 +212,185 @@ def as_markdown(doc):
 
 
 # ─────────────────────── 取订单 ───────────────────────
-def order_from_mcp():
-    """从麦当劳 MCP 读最近一笔订单的餐品名。
+def _pick_latest_order(data):
+    """从 order-list 的返回里挑出**最近一笔**订单。
 
-    说明：`order-list` 的返回结构官方没有正式文档，这里按已知的几种形态依次尝试，
-    都不匹配就把原始返回打出来，方便对着改。**这条路径需要真实 Token 才能验证。**
+    返回结构（根据社区联调记录整理，字段名可能有多个别名）：
+        外层可能是 data / result / records / list / orderList / orders 之一
+        订单：orderId, createTime / orderTime / createDate, storeName,
+              orderStatus / status, realTotalAmount / totalAmount / amount,
+              orderProductList / products: [{ productName / name, quantity }]
     """
-    from mcd_mcp import MCDClient, MCDError
+    WRAPPERS = ("data", "result", "records", "list", "orderList", "orders")
 
-    try:
-        client = MCDClient()
-        data = client.call("order-list")
-    except MCDError as e:
-        raise SystemExit(f"读取订单失败：{e}")
-
-    names = []
-
-    def walk(node):
-        """递归找看起来像「餐品名」的字段。"""
-        if isinstance(node, dict):
-            for key in ("productName", "name", "itemName", "mealName", "skuName"):
-                v = node.get(key)
-                if isinstance(v, str) and v.strip():
-                    names.append(v.strip())
+    def find_orders(node, depth=0):
+        """递归找到「看起来像订单数组」的那一层。"""
+        if depth > 6:
+            return None
+        if isinstance(node, list):
+            if node and all(isinstance(x, dict) for x in node):
+                # 数组元素里有订单特征字段，就认定它是订单列表
+                keys = set().union(*(set(x.keys()) for x in node[:5]))
+                if keys & {"orderId", "id", "orderProductList", "products",
+                           "realTotalAmount", "orderTime", "createTime"}:
+                    return node
+            for x in node:
+                r = find_orders(x, depth + 1)
+                if r:
+                    return r
+        elif isinstance(node, dict):
+            for k in WRAPPERS:
+                if k in node:
+                    r = find_orders(node[k], depth + 1)
+                    if r:
+                        return r
             for v in node.values():
-                walk(v)
-        elif isinstance(node, list):
-            for v in node:
-                walk(v)
+                r = find_orders(v, depth + 1)
+                if r:
+                    return r
+        return None
 
-    walk(data)
-    # 去重保序
+    orders = find_orders(data)
+    if not orders:
+        return None
+
+    def when(o):
+        """取订单时间，用于排序。解析不出来就当最早。"""
+        for k in ("createTime", "orderTime", "createDate", "orderDate", "time"):
+            v = o.get(k)
+            if v is None:
+                continue
+            if isinstance(v, (int, float)):
+                return float(v)
+            t = str(v).replace("/", "-").replace("T", " ")
+            digits = "".join(c for c in t if c.isdigit())
+            if len(digits) >= 8:
+                return float(digits[:14])
+        return 0.0
+
+    # 已取消的订单跳过，然后按时间倒序取第一笔
+    CANCELLED = ("取消", "已关闭", "退款", "cancel", "closed", "refund")
+    alive = [o for o in orders
+             if not any(m in str(o.get("orderStatus") or o.get("status") or "").lower()
+                        for m in CANCELLED)]
+    pool = alive or orders
+    pool.sort(key=when, reverse=True)
+    return pool[0]
+
+
+def _lines_of(order):
+    """从一笔订单里取出餐品名（按数量展开），去重保序。"""
+    raw_lines = order.get("orderProductList") or order.get("products") or []
+    names = []
+    for it in raw_lines:
+        if not isinstance(it, dict):
+            continue
+        name = str(it.get("productName") or it.get("name") or "").strip()
+        if not name:
+            continue
+        try:
+            qty = int(it.get("quantity") or 1)
+        except (TypeError, ValueError):
+            qty = 1
+        names.extend([name] * max(1, qty))
     seen, out = set(), []
     for n in names:
         if n not in seen:
             seen.add(n)
             out.append(n)
-    if not out:
-        print("找不到餐品名，order-list 的原始返回是这样的：", file=sys.stderr)
-        print(json.dumps(data, ensure_ascii=False, indent=2)[:1500], file=sys.stderr)
-        raise SystemExit("请按上面的结构补充 order_from_mcp() 里的字段名")
     return out
+
+
+def _order_meta(order):
+    """把「读了哪一笔」拼成一行，用户能一眼确认是不是刚点的那单。"""
+    meta = []
+    for k in ("createTime", "orderTime", "createDate", "orderDate"):
+        if order.get(k):
+            meta.append(str(order[k]))
+            break
+    if order.get("storeName"):
+        meta.append(str(order["storeName"]))
+    for k in ("realTotalAmount", "totalAmount", "amount"):
+        if order.get(k) is not None:
+            meta.append(f"{order[k]} 元")
+            break
+    return " · ".join(meta)
+
+
+def order_from_mcp():
+    """从麦当劳 MCP 读**最近一笔**订单的餐品名。
+
+    说明：`order-list` 没有正式 schema，这里的字段名是照社区联调记录写的，
+    并做了别名兼容与递归查找。**这条路径尚未用真实 Token 验证** ——
+    解析不出来时会把原始返回打出来并停下，不会静默给一个错误结果。
+    """
+    from mcd_mcp import MCDClient, MCDError
+
+    try:
+        data = MCDClient().call("order-list")
+    except MCDError as e:
+        raise SystemExit(f"读取订单失败：{e}")
+
+    order = _pick_latest_order(data)
+    if order is None:
+        _bail(data, "在返回里找不到订单列表")
+    names = _lines_of(order)
+    if not names:
+        _bail(order, "这笔订单里没解析出餐品")
+
+    meta = _order_meta(order)
+    if meta:
+        print(f"[订单] {meta}", file=sys.stderr)
+    return names
+
+
+def _bail(what, why):
+    """解析失败时把原始结构打出来再停，方便对着改。"""
+    print(f"{why}，原始结构如下：", file=sys.stderr)
+    print(json.dumps(what, ensure_ascii=False, indent=2)[:1500], file=sys.stderr)
+    raise SystemExit("请按上面的结构补充解析字段名")
+
+
+def watch_mcp(interval=20):
+    """盯单模式：挂着它，你去下单，出现新订单就自动把菜品改编成课文。
+
+    这正是「点完餐就出课文」—— 不用手动再跑一次。
+    """
+    from mcd_mcp import MCDClient, MCDError
+
+    try:
+        client = MCDClient()
+    except MCDError as e:
+        raise SystemExit(f"{e}")
+
+    lessons, fallbacks = load_lessons()
+    last_id = None
+    print(f"正在盯着订单…… 每 {interval} 秒查一次，去点你的餐吧（Ctrl+C 退出）", file=sys.stderr)
+
+    while True:
+        try:
+            data = client.call("order-list")
+            order = _pick_latest_order(data)
+            if order is not None:
+                oid = str(order.get("orderId") or order.get("id") or "")
+                fresh = oid and oid != last_id
+                if fresh and last_id is not None:
+                    names = _lines_of(order)
+                    if names:
+                        meta = _order_meta(order)
+                        print("")
+                        print("=" * 46, flush=True)
+                        print(f"  新订单来了：{'、'.join(names)}")
+                        if meta:
+                            print(f"  {meta}")
+                        print('=' * 46)
+                        lesson = pick_lesson(lessons, seed="|".join(names))
+                        print(as_text(compose(names, lesson, fallbacks)), flush=True)
+                if oid:
+                    last_id = oid
+        except MCDError as e:
+            print(f"[跳过] {e}", file=sys.stderr)
+        time.sleep(interval)
 
 
 # ─────────────────────── 入口 ───────────────────────
@@ -262,10 +401,12 @@ def main(argv=None):
     )
     src = ap.add_mutually_exclusive_group()
     src.add_argument("--demo", action="store_true", help="用内置样例订单（不需要 Token）")
-    src.add_argument("--mcp", action="store_true", help="读真实订单历史（需要 MCD_MCP_TOKEN）")
+    src.add_argument("--mcp", action="store_true", help="读最近一笔订单（需要 MCD_MCP_TOKEN）")
+    src.add_argument("--watch", action="store_true", help="盯单模式：下单后自动出课文")
     src.add_argument("--items", help="直接给餐品，用逗号分隔，例如 \"巨无霸,薯条,可乐\"")
     ap.add_argument("--lesson", help="指定课文 id（见 --list）")
     ap.add_argument("--list", action="store_true", help="列出所有课文")
+    ap.add_argument("--interval", type=int, default=20, help="盯单模式的查询间隔秒数（默认 20）")
     ap.add_argument("--json", action="store_true", help="输出 JSON")
     ap.add_argument("--md", action="store_true", help="输出 Markdown")
     args = ap.parse_args(argv)
@@ -277,6 +418,14 @@ def main(argv=None):
         for l in lessons:
             print(f"  {l['id']:14s} 《{l['title']}》  {l['author']}  · {l.get('tag','')}")
         print()
+        return 0
+
+    if args.watch:
+        try:
+            watch_mcp(args.interval)
+        except KeyboardInterrupt:
+            print("")
+            print("停了。", file=sys.stderr)
         return 0
 
     if args.mcp:

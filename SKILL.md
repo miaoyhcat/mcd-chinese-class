@@ -31,14 +31,17 @@ python mcd_chinese.py --list
 
 输出是一篇完整的课文：标题、作者、正文、**课后习题**。
 
-## 读取真实订单（可选）
+## 点完餐自动出课文（可选）
 
 ```bash
 export MCD_MCP_TOKEN="你的token"   # https://open.mcd.cn/mcp
-python mcd_chinese.py --mcp
+
+python mcd_chinese.py --mcp        # 读最近一笔订单，改编成课文
+python mcd_chinese.py --watch      # 挂着盯单，下单后自动出课文
 ```
 
-只调用 `order-list` 一个只读工具。不下单、不支付、不领券。
+只调用 `order-list` 一个只读工具，只取**最近一笔**订单（自动跳过已取消的）。
+不下单、不支付、不领券。
 
 ## 十六篇课文
 

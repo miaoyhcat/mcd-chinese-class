@@ -89,15 +89,29 @@ python mcd_chinese.py --demo --md
 python mcd_chinese.py --demo --json
 ```
 
-### 读取你的真实订单
+### 点完餐，课文就出来了
 
-配置麦当劳 MCP Token 后，可以直接拿最近一笔订单来改编：
+配置麦当劳 MCP Token 后，程序会读**你最近一笔订单**，把那里面的餐品改编成课文：
 
 ```bash
 # 申请 Token：https://open.mcd.cn/mcp
 export MCD_MCP_TOKEN="你的token"      # Windows PowerShell: $env:MCD_MCP_TOKEN="..."
+
+# 点完餐跑一次
 python mcd_chinese.py --mcp
+
+# 或者挂着盯单：下单之后自动出课文，不用再手动跑
+python mcd_chinese.py --watch          # 默认每 20 秒查一次，--interval 可调
 ```
+
+`--mcp` 会在生成前把「读了哪一笔」打到屏幕边上（时间 / 门店 / 金额），
+方便确认拿到的就是你刚点的那单：
+
+```
+[订单] 2026-10-14 12:30:00 · 南京东城汇店 · 31.00 元
+```
+
+会自动跳过已取消的订单；近 90 天的订单里，永远取最近的一笔。
 
 ## 麦当劳 MCP 接入
 
