@@ -31,6 +31,8 @@
 |---|---|---|---|
 | `order-list` | 读取个人历史订单（近 90 天），取出**最近一笔**的餐品名 | 无 | `--mcp` 时调用一次；`--watch` 时每 N 秒轮询 |
 
+调用 `tools/list` 实测到服务端共提供 **35 个工具**。本项目只用到其中 1 个。
+
 **本项目的核心功能不依赖 MCP。** 网页演示与命令行默认路径（`--demo` / `--items`）
 完全不联网、不需要 Token。MCP 只用来把「手动输入餐品」换成「直接读我的真实订单」，
 是一个便利性增强，不是必需品。
@@ -70,13 +72,42 @@ READ_ONLY_TOOLS = {
    └─ 找出最近一笔订单 → 取出其中的餐品名
 ```
 
-`order-list` 的返回结构官方未提供正式 schema。本项目按社区联调记录里出现的字段写的解析：
+### 返回值不是裸 JSON（实测踩到的坑）
 
-| 层级 | 字段（含别名） |
+工具的 `content[0].text` **不是** JSON，而是一段混合文本：
+
+```
+# API Response Information
+...（## Response Structure，字段说明）...
+
+## Original Response
+
+{"success":true,"code":200,"message":"请求成功","datetime":"...","traceId":"...","data":{...}}
+```
+
+所以不能直接 `json.loads(text)`。`mcd_mcp._extract_json()` 会先定位到
+`## Original Response`，再截取其中第一个 `{` 到最后一个 `}`。
+
+另外三种工具返回形态各不相同，客户端都要能应付：
+
+| 形态 | 例子 | 处理 |
+|---|---|---|
+| 结构说明 + 嵌入 JSON | `order-list`、`now-time-info` | 按上面的方式提取 |
+| 纯 Markdown 文本 | `available-coupons` | 解析不出 JSON 就原样返回字符串 |
+| JSON 里 data 又是字符串 | `list-nutrition-foods` | 原样返回，交给上层 |
+
+### order-list 的字段（实测确认）
+
+| 层级 | 字段 |
 |---|---|
-| 外层包装 | `data` / `result` / `records` / `list` / `orderList` / `orders` |
-| 订单 | `orderId`、`createTime` / `orderTime` / `createDate`、`storeName`、`orderStatus` / `status`、`realTotalAmount` / `totalAmount` / `amount` |
-| 餐品行 | `orderProductList` / `products` → `productName` / `name`、`quantity` |
+| 外层 | `success` / `code` / `message` / `datetime` / `traceId` / `data` |
+| `data.list[]` | `orderId`、`orderType`、`createTime`、`beType`、`beCode`、`storeCode`、`storeName`、`orderStatus`、`realTotalAmount` |
+| `orderProductList[]` | `productCode`、`productName`、`quantity`、`comboItemList` |
+
+解析仍然保留了别名兼容与递归查找（见 `_pick_latest_order`），这样万一服务端
+调整了包装层也不会立刻失效。**套餐会把 `comboItemList` 里的子项展开** ——
+否则点一份「巨无霸套餐」，课文里只看得到套餐名，看不到里面的薯条和可乐。
+子项名字已包含在套餐名里的（「巨无霸」⊂「巨无霸套餐」）会跳过，避免重复。
 
 解析策略是**保守**的，三层都做了兼容：
 
@@ -113,7 +144,7 @@ READ_ONLY_TOOLS = {
 
 **诚实说明**：以下区分「已验证」与「未验证」，不把没测过的说成测过的。
 
-### 已验证
+### 已用真实 Token 实测（2026-10-15）
 
 - `--demo` / `--items` / `--list` / `--md` / `--json` 全部路径跑通，
   包括空输入、纯饮品、中英文逗号混用等边界情况
@@ -124,18 +155,31 @@ READ_ONLY_TOOLS = {
   手动输入、复制按钮、无 JS 报错
 - 只读白名单：传非白名单工具名会被拒绝，请求不会发出
 
-### 未验证（需要真实 Token）
+### 已验证（真实 Token 联调）
 
-- **`order-list` 的真实返回结构**：本项目没有可供联调的 Token。
-  字段名来自社区项目的联调记录，解析逻辑已用两份**符合该结构的模拟数据**跑通
-  （含外层包装差异、字段别名、已取消订单过滤、时间排序），但**未接过真实接口**。
-  如果实际结构不匹配，程序会打印原始返回并停下，不会静默产出错误结果。
-- **`--watch` 的轮询**：变更检测逻辑（记住 orderId、跳过首次基线）已在代码层实现，
-  同样未经真实订单触发验证。
-- 服务端对 `initialize` / `tools/call` 的具体响应细节
-  （如上文第五节所述，客户端对两种响应形态都做了兼容）。
+- **握手**：`initialize → notifications/initialized → tools/call` 全部成功，
+  鉴权头 `Authorization: Bearer <token>` 有效
+- **`tools/list`**：服务端返回 **35 个工具**，与客户端文档一致
+- **只读白名单真的拦得住**：调用 `query-my-account`（不在白名单）时被客户端拒绝，
+  请求根本没有发出去
+- **返回值形态**：确认是「结构说明 + `## Original Response` + JSON」的混合文本，
+  `_extract_json()` 能正确提取
+- **字段名**：`order-list` 的字段与上表一致（来自接口自带的 Response Structure 说明）
+- **空数据形态**：该账号近 90 天无订单，`data` 返回 `{}`；
+  程序识别这种情况并给出人话提示，而不是报解析错误
+- **其他工具**：`now-time-info` 解析为含 `timestamp/datetime/formatted/date/year` 的
+  dict；`available-coupons` 返回 Markdown 文本；`list-nutrition-foods` 的 `data`
+  是表格字符串
 
-未验证的部分不会影响项目的主要功能：核心的课文生成完全不经过 MCP。
+### 仍未验证
+
+- **带真实订单的完整解析链路**：联调时该账号没有历史订单，
+  所以「取最近一笔 → 展开套餐子项 → 分类」这条路径是用**严格按接口 schema
+  构造的测试数据**验证的（含已取消订单过滤、字段别名、套餐子项展开），
+  但没有跑过真实订单行。
+- **`--watch` 的新订单触发**：变更检测逻辑已实现，同样未经真实下单触发。
+
+这两项都不影响项目的主要功能：核心的课文生成完全不经过 MCP。
 
 ---
 

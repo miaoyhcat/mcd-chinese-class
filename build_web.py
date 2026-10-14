@@ -9,6 +9,7 @@
 产物：docs/index.html —— 页面设置里把 Pages 指向 main 分支的 /docs 即可。
 """
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -27,18 +28,34 @@ def main():
     fallbacks = data.get("fallbacks", {})
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    # 分类词表从 mcd_chinese.py 导入后注入网页 —— 单一数据源，
+    # 免得命令行和网页两边各自维护一份、慢慢漂移。
+    spec = importlib.util.spec_from_file_location("mc", HERE / "mcd_chinese.py")
+    mc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mc)
+
     tpl = TPL.read_text(encoding="utf-8")
 
     # 用 json.dumps 保证注入的是合法 JS 字面量；</ 转义避免提前闭合 script
     def js(obj):
         return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
 
-    out = tpl.replace("/*__LESSONS__*/", js(lessons))
+    out = tpl
+    for key, val in [("__DRINK_WORDS__", mc.DRINK_WORDS),
+                     ("__SIDE_WORDS__", mc.SIDE_WORDS),
+                     ("__MAIN_MARKERS__", mc.MAIN_MARKERS),
+                     ("__SIZE_PREFIX__", mc.SIZE_PREFIX)]:
+        out = out.replace(f"/*{key}*/", js(list(val)))
+
+    out = out.replace("/*__LESSONS__*/", js(lessons))
     out = out.replace("/*__FALLBACKS__*/", js(fallbacks))
     out = out.replace("https://github.com/OWNER/REPO", REPO_URL)
 
-    assert "__LESSONS__" not in out, "LESSONS 占位符没替换干净"
-    assert "OWNER/REPO" not in out, "仓库地址没替换干净"
+    # 占位符一个都不能剩 —— 漏掉的话页面会拿空数组静默跑，分类全错却看不出来
+    for leftover in ("__LESSONS__", "__FALLBACKS__", "__DRINK_WORDS__",
+                     "__SIDE_WORDS__", "__MAIN_MARKERS__", "__SIZE_PREFIX__",
+                     "OWNER/REPO"):
+        assert leftover not in out, f"占位符 {leftover} 没替换干净"
 
     OUT.write_text(out, encoding="utf-8")
     kb = len(out.encode("utf-8")) / 1024

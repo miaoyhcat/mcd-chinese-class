@@ -137,11 +137,11 @@ const LESSONS = [{"id": "beiying", "title": "背影", "author": "朱自清", "ta
 const FALLBACK = {"main": "巨无霸", "side": "薯条", "drink": "可乐", "store": "麦当劳"};
 
 /* ── 与 mcd_chinese.py 保持一致的分类逻辑 ── */
-const DRINK_WORDS = ["可乐","雪碧","芬达","咖啡","拿铁","美式","茶","奶茶","果汁","橙汁","豆浆","牛奶","水"];
+const DRINK_WORDS = ["可乐", "雪碧", "芬达", "咖啡", "拿铁", "美式", "茶", "奶茶", "果汁", "橙汁", "豆浆", "牛奶", "矿泉水", "水"];
 // 注意别放「鸡腿」——「板烧鸡腿堡」「麦辣鸡腿堡」是汉堡，会被误判成小食
-const SIDE_WORDS  = ["薯条","鸡块","鸡翅","派","沙拉","玉米","洋葱圈","冰淇淋","麦旋风","新地","圣代","蛋挞","水果"];
-const MAIN_MARKERS = ["堡","卷","饭","粥"];
-const SIZE_PREFIX = ["超大","大","中","小"];
+const SIDE_WORDS  = ["薯条", "鸡块", "鸡翅", "派", "沙拉", "玉米", "洋葱圈", "冰淇淋", "麦旋风", "新地", "圣代", "蛋挞", "水果"];
+const MAIN_MARKERS = ["堡", "卷", "饭", "粥", "巨无霸", "麦香鱼"];
+const SIZE_PREFIX = ["超大", "大", "中", "小"];
 
 const stripSize = s => { for (const p of SIZE_PREFIX)
   if (s.startsWith(p) && s.length > p.length + 1) return s.slice(p.length); return s; };

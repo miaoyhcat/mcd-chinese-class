@@ -172,19 +172,43 @@ class MCDClient:
             self.initialize()
 
 
+def _extract_json(text: str):
+    """从工具的 text 块里把真正的 JSON 抠出来。
+
+    ⚠ 真实联调发现（2026-10-15）：MCP 工具返回的**不是**裸 JSON，而是一段
+    «接口结构说明 + 原始响应» 的混合文本，长这样：
+
+        # API Response Information
+        ...## Response Structure（字段说明）...
+        ## Original Response
+
+        {"success":true,"code":200,"data":{...}}
+
+    所以不能直接 json.loads 整个 text。要定位到 `## Original Response`
+    之后再截取第一个 { 到最后一个 }。
+    """
+    marker = "## Original Response"
+    if marker in text:
+        text = text.split(marker, 1)[1]
+    i, j = text.find("{"), text.rfind("}")
+    if i >= 0 and j > i:
+        text = text[i:j + 1]
+    return json.loads(text)
+
+
 def _unwrap(result: dict):
     """把 MCP 的 content 数组拆成 Python 数据。
 
-    工具返回的 content 可能是 text/json 块；若是 JSON 字符串就顺手解析成对象，
-    否则原样返回文本，交给上层处理。
+    优先解析 text 块里嵌的 JSON；解析不出来就原样返回文本，
+    交给上层决定怎么办（本项目里会打印原文并停下，不猜）。
     """
     contents = result.get("content") or []
     texts = [c.get("text", "") for c in contents if c.get("type") == "text"]
-    joined = "\n".join(t for t in texts if t).strip()
+    joined = chr(10).join(t for t in texts if t).strip()
     if not joined:
         # 有些工具把结构化数据放在 structuredContent 里
         return result.get("structuredContent") or result
     try:
-        return json.loads(joined)
-    except json.JSONDecodeError:
+        return _extract_json(joined)
+    except (json.JSONDecodeError, ValueError):
         return joined

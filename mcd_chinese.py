@@ -26,12 +26,13 @@ LESSONS_PATH = HERE / "lessons.json"
 
 # 常见餐品的归类，用于判断哪件是主食 / 小食 / 饮品
 DRINK_WORDS = ("可乐", "雪碧", "芬达", "咖啡", "拿铁", "美式", "茶", "奶茶",
-               "果汁", "橙汁", "豆浆", "牛奶", "矿泉水", "水", "麦旋风冰饮")
+               "果汁", "橙汁", "豆浆", "牛奶", "矿泉水", "水")
 # 注意别放「鸡腿」——「板烧鸡腿堡」「麦辣鸡腿堡」是汉堡，会被误判成小食
 SIDE_WORDS = ("薯条", "鸡块", "鸡翅", "派", "沙拉", "玉米", "洋葱圈",
               "冰淇淋", "麦旋风", "新地", "圣代", "蛋挞", "水果")
 # 汉堡类一律算主食，优先级高于上面的小食词
-MAIN_MARKERS = ("堡", "卷", "饭", "粥")
+# 「巨无霸」「麦香鱼」是汉堡但名字里没有「堡」，得显式列出来
+MAIN_MARKERS = ("堡", "卷", "饭", "粥", "巨无霸", "麦香鱼")
 
 # 尺寸前缀：用在「金黄的___」这种形容词位置时要去掉，否则读起来别扭
 SIZE_PREFIX = ("超大", "大", "中", "小")
@@ -279,20 +280,37 @@ def _pick_latest_order(data):
 
 
 def _lines_of(order):
-    """从一笔订单里取出餐品名（按数量展开），去重保序。"""
+    """从一笔订单里取出餐品名（去重保序）。
+
+    套餐要把 comboItemList 里的子项也捞出来 —— 否则点一份「巨无霸套餐」，
+    课文里只会出现套餐名，看不到里面的薯条和可乐，分类会全落到主食上。
+    """
     raw_lines = order.get("orderProductList") or order.get("products") or []
     names = []
-    for it in raw_lines:
+
+    def add(n):
+        n = str(n or "").strip()
+        if n:
+            names.append(n)
+
+    for it in (raw_lines if isinstance(raw_lines, list) else []):
         if not isinstance(it, dict):
             continue
-        name = str(it.get("productName") or it.get("name") or "").strip()
-        if not name:
-            continue
-        try:
-            qty = int(it.get("quantity") or 1)
-        except (TypeError, ValueError):
-            qty = 1
-        names.extend([name] * max(1, qty))
+        parent = str(it.get("productName") or it.get("name") or "").strip()
+        add(parent)
+        # 套餐子项。名字已经包含在套餐名里的就跳过——
+        # 「巨无霸」⊂「巨无霸套餐」，重复列出来课文里会啰嗦。
+        for sub in (it.get("comboItemList") or []):
+            if isinstance(sub, dict):
+                sn = str(sub.get("productName") or sub.get("name") or "").strip()
+                if sn and sn not in parent:
+                    add(sn)
+
+    if not names and not any(isinstance(i, dict) and (i.get("productName") or i.get("name"))
+                             for i in raw_lines if isinstance(raw_lines, list)):
+        # 一个名字都没取到，交给上层去打原始结构
+        return []
+
     seen, out = set(), []
     for n in names:
         if n not in seen:
@@ -320,9 +338,16 @@ def _order_meta(order):
 def order_from_mcp():
     """从麦当劳 MCP 读**最近一笔**订单的餐品名。
 
-    说明：`order-list` 没有正式 schema，这里的字段名是照社区联调记录写的，
-    并做了别名兼容与递归查找。**这条路径尚未用真实 Token 验证** ——
-    解析不出来时会把原始返回打出来并停下，不会静默给一个错误结果。
+    真实返回结构（2026-10-15 用真实 Token 联调确认）：
+        data.list[] = { orderId, orderType, createTime, beType, beCode,
+                        storeCode, storeName, orderStatus, realTotalAmount,
+                        orderProductList: [{ productCode, productName,
+                                             quantity, comboItemList }] }
+    并且工具返回的是「结构说明 + 原始 JSON」的混合文本，
+    真正的 JSON 在 `## Original Response` 之后（见 mcd_mcp._extract_json）。
+
+    token 的有效性、字段名、空数据形态都已实测；解析不出来时会打印原始返回并停下，
+    不会静默给一个错误结果。
     """
     from mcd_mcp import MCDClient, MCDError
 
@@ -330,6 +355,15 @@ def order_from_mcp():
         data = MCDClient().call("order-list")
     except MCDError as e:
         raise SystemExit(f"读取订单失败：{e}")
+
+    # 账号没有订单时 data 是空对象。这不是解析失败，要说人话。
+    payload = data.get("data") if isinstance(data, dict) else None
+    if not payload:
+        raise SystemExit(chr(10).join([
+            "这个账号近 90 天没有订单记录。",
+            "  先用同一个手机号在麦当劳点一单，再回来跑 --mcp。",
+            "  （想先看效果的话，用 --demo 或 --items，不需要 Token）",
+        ]))
 
     order = _pick_latest_order(data)
     if order is None:

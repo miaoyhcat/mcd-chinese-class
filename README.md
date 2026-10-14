@@ -112,6 +112,11 @@ python mcd_chinese.py --watch          # 默认每 20 秒查一次，--interval 
 ```
 
 会自动跳过已取消的订单；近 90 天的订单里，永远取最近的一笔。
+点的是套餐也没关系 —— 套餐里的薯条、可乐会被展开，一样能进课文。
+
+> 用真实 Token 联调过：握手、35 个工具的列表、只读白名单拦截、
+> `order-list` 的字段结构都已确认。细节和「哪些还没验证」见
+> [MCP_INTEGRATION.md](MCP_INTEGRATION.md)。
 
 ## 麦当劳 MCP 接入
 
