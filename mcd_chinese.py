@@ -15,7 +15,6 @@
 """
 
 import argparse
-import hashlib
 import json
 import random
 import sys
@@ -127,9 +126,15 @@ def render(text, fields):
 
 
 def lesson_number(items):
-    """给订单编一个稳定的「课号」，同一单永远同一号。"""
-    h = hashlib.md5("|".join(items).encode("utf-8")).hexdigest()
-    return int(h[:6], 16) % 999 + 1
+    """给订单编一个稳定的「课号」，同一单永远同一号。
+
+    ⚠ 算法必须和网页版 build_web 里内联的 lessonNumber() 一致，
+    否则同一个订单在命令行和网页上会得到不同的课号。
+    """
+    h = 0
+    for ch in "|".join(items):
+        h = (h * 31 + ord(ch)) % 999983
+    return h % 999 + 1
 
 
 def compose(order, lesson, fallbacks):
