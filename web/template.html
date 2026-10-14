@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麦门语文课 · 把你的订单改写成语文课本</title>
+<meta name="description" content="选几样麦当劳，挑一篇课文，看你的订单被改写成《背影》《孔乙己》《岳阳楼记》。不需要 Token，打开就能玩。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="麦门语文课 · 把你的订单改写成语文课本">
+<meta property="og:description" content="选几样麦当劳，挑一篇课文，看你的订单被改写成《背影》《孔乙己》《岳阳楼记》。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+<style>
+:root{
+  --bg:#F7F5F0; --paper:#FFFDF8; --ink:#1E2128; --dim:#5C6169; --mute:#8B8F99;
+  --gold:#B08A2E; --red:#9E3B32; --line:rgba(30,33,40,.13);
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;
+  padding:clamp(24px,4.5vw,56px) clamp(14px,3.5vw,36px) 72px}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(176,138,46,.26)}
+.wrap{max-width:760px;margin:0 auto}
+
+/* ── 抬头 ── */
+header{text-align:center;margin-bottom:clamp(22px,3.5vw,36px)}
+h1{font-family:var(--serif);font-size:clamp(24px,5vw,40px);font-weight:700;letter-spacing:.1em}
+.tagline{margin-top:10px;font-size:clamp(12.5px,1.7vw,14px);color:var(--dim);letter-spacing:.08em}
+.tagline b{color:var(--gold);font-weight:500}
+
+/* ── 控制面板 ── */
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+  padding:clamp(16px,2.6vw,24px);margin-bottom:clamp(16px,2.4vw,22px)}
+.lbl{font-size:11px;letter-spacing:.3em;color:var(--mute);margin-bottom:11px}
+.lbl:not(:first-child){margin-top:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:13px;padding:7px 14px;border-radius:99px;border:1px solid var(--line);
+  background:transparent;color:var(--dim);cursor:pointer;transition:all .2s;font-family:inherit}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.lesson{font-family:var(--serif);font-size:13.5px}
+.chip.lesson.on{background:var(--gold);border-color:var(--gold)}
+
+input[type=text]{width:100%;margin-top:11px;padding:11px 14px;font-size:13.5px;
+  border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);
+  font-family:inherit}
+input[type=text]:focus{outline:none;border-color:var(--gold)}
+.hint{margin-top:9px;font-size:11.5px;color:var(--mute)}
+
+/* ── 按钮 ── */
+.acts{display:flex;gap:10px;margin:clamp(18px,2.6vw,24px) 0;flex-wrap:wrap}
+.btn{flex:1;min-width:130px;padding:14px 20px;border-radius:11px;font-size:14.5px;
+  letter-spacing:.1em;cursor:pointer;border:none;font-family:inherit;transition:all .22s}
+.btn.pri{background:var(--ink);color:#fff}
+.btn.pri:hover{background:var(--gold)}
+.btn.sec{background:transparent;border:1px solid var(--line);color:var(--dim);flex:0 0 auto;min-width:96px}
+.btn.sec:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── 课文卡片 ── */
+#lesson{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+  padding:clamp(24px,4.5vw,52px) clamp(18px,4vw,56px);
+  box-shadow:0 14px 44px rgba(30,33,40,.07);display:none}
+#lesson.show{display:block}
+.lessno{text-align:center;font-size:11px;letter-spacing:.34em;color:var(--mute);margin-bottom:22px}
+.title{text-align:center;font-family:var(--serif);font-size:clamp(24px,4.4vw,34px);
+  font-weight:700;letter-spacing:.18em}
+.author{text-align:center;margin-top:9px;font-size:13.5px;color:var(--dim);letter-spacing:.14em}
+.note{text-align:center;margin-top:5px;font-size:11.5px;color:var(--mute);letter-spacing:.1em}
+.rule{height:1px;background:var(--line);margin:clamp(20px,3.4vw,32px) 0}
+.body p{font-family:var(--serif);font-size:clamp(14.5px,2vw,16px);line-height:2.15;
+  text-indent:2em;margin-bottom:.9em;text-align:justify}
+.body p.open{text-indent:2em;color:var(--red)}
+.body p.end{color:var(--dim);font-style:italic}
+.qhead{text-align:center;font-family:var(--serif);font-size:15px;font-weight:700;
+  letter-spacing:.5em;color:var(--ink);margin:clamp(24px,4vw,38px) 0 clamp(14px,2vw,20px)}
+.qs{counter-reset:q}
+.qs p{font-family:var(--serif);font-size:clamp(13.5px,1.85vw,15px);line-height:2;
+  margin-bottom:.7em;padding-left:1.9em;position:relative;text-align:justify}
+.qs p::before{counter-increment:q;content:counter(q) "．";position:absolute;left:0;color:var(--gold)}
+.foot{margin-top:clamp(22px,3.4vw,32px);padding-top:16px;border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--mute);text-align:center;letter-spacing:.06em}
+.foot b{color:var(--dim);font-weight:500}
+
+/* ── 页脚 ── */
+footer{margin-top:clamp(30px,5vw,52px);text-align:center;font-size:12px;color:var(--mute);line-height:2.1}
+footer a{color:var(--gold)}
+.toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,20px);opacity:0;
+  background:var(--ink);color:#fff;font-size:13px;padding:11px 22px;border-radius:99px;
+  transition:all .3s;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:600px){
+  .btn{min-width:0}
+  .btn.sec{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>麦门语文课</h1>
+    <div class="tagline">选几样麦当劳，挑一篇课文，<b>看你的订单被改写成什么</b></div>
+  </header>
+
+  <div class="panel">
+    <div class="lbl">点 你 吃 了 什 么</div>
+    <div class="chips" id="foods"></div>
+    <input type="text" id="custom" placeholder="也可以直接打字，用逗号分隔：巨无霸, 中薯条, 可乐" autocomplete="off">
+    <div class="hint" id="picked">当前订单：巨无霸、中薯条、可乐</div>
+
+    <div class="lbl">挑 一 篇 课 文</div>
+    <div class="chips" id="lessons"></div>
+  </div>
+
+  <div class="acts">
+    <button class="btn pri" id="go">生 成 课 文</button>
+    <button class="btn sec" id="again">换一篇</button>
+    <button class="btn sec" id="copy">复制</button>
+  </div>
+
+  <article id="lesson"></article>
+
+  <footer>
+    麦门语文课 · 麦当劳程序员节创意开发大赛参赛作品<br>
+    非麦当劳官方产品 · 课文均为戏仿，与原作无关<br>
+    <a href="https://github.com/OWNER/REPO">GitHub 仓库</a>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* 课文模板由 lessons.json 生成，构建时内联进来（见 build_web.py） */
+const LESSONS = /*__LESSONS__*/;
+const FALLBACK = /*__FALLBACKS__*/;
+
+/* ── 与 mcd_chinese.py 保持一致的分类逻辑 ── */
+const DRINK_WORDS = ["可乐","雪碧","芬达","咖啡","拿铁","美式","茶","奶茶","果汁","橙汁","豆浆","牛奶","水"];
+// 注意别放「鸡腿」——「板烧鸡腿堡」「麦辣鸡腿堡」是汉堡，会被误判成小食
+const SIDE_WORDS  = ["薯条","鸡块","鸡翅","派","沙拉","玉米","洋葱圈","冰淇淋","麦旋风","新地","圣代","蛋挞","水果"];
+const MAIN_MARKERS = ["堡","卷","饭","粥"];
+const SIZE_PREFIX = ["超大","大","中","小"];
+
+const stripSize = s => { for (const p of SIZE_PREFIX)
+  if (s.startsWith(p) && s.length > p.length + 1) return s.slice(p.length); return s; };
+
+function classify(items){
+  // 与 mcd_chinese.py 的 classify() 保持一致：三者互不重叠
+  const drinks = items.filter(i => DRINK_WORDS.some(w => i.includes(w)));
+  const mains = [], sides = [];
+  for (const i of items){
+    if (drinks.includes(i)) continue;
+    if (MAIN_MARKERS.some(w => i.includes(w))) mains.push(i);
+    else sides.push(i);
+  }
+  if (!mains.length){
+    const first = items.find(i => !drinks.includes(i)) ?? items[0];
+    mains.push(first);
+    for (let k = sides.length - 1; k >= 0; k--) if (sides[k] === first) sides.splice(k, 1);
+  }
+  return {mains, sides, drinks};
+}
+
+function fields(items){
+  const {mains, sides, drinks} = classify(items);
+  const uniq = [...new Set(items)];
+  return {
+    main: mains[0],
+    side: sides.length ? stripSize(sides[0]) : FALLBACK.side,
+    drink: drinks.length ? stripSize(drinks[0]) : FALLBACK.drink,
+    items: uniq.join("、"),
+    count: items.length,
+    store: FALLBACK.store,
+  };
+}
+
+const fill = (t, f) => t.replace(/\{(\w+)\}/g, (m, k) => (k in f ? f[k] : m));
+
+function lessonNumber(items){
+  let h = 0;
+  const s = items.join("|");
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 999983;
+  return h % 999 + 1;
+}
+
+function compose(items, lesson){
+  const f = fields(items);
+  return {
+    no: lessonNumber(items),
+    title: lesson.title, author: lesson.author,
+    opening: fill(lesson.opening, f),
+    body: lesson.body.map(p => fill(p, f)),
+    ending: lesson.ending ? fill(lesson.ending, f) : "",
+    questions: lesson.questions.map(q => fill(q, f)),
+    items,
+  };
+}
+
+/* ── 状 态 ── */
+const FOODS = ["巨无霸","麦辣鸡腿堡","板烧鸡腿堡","双层吉士堡","麦香鱼",
+               "中薯条","麦乐鸡","鸡翅","苹果派","玉米杯",
+               "可乐","雪碧","芬达","拿铁","橙汁"];
+const picked = new Set(["巨无霸","中薯条","可乐"]);
+let lessonIdx = 0;
+
+const $ = id => document.getElementById(id);
+
+/* ── 渲染选择区 ── */
+FOODS.forEach(name => {
+  const b = document.createElement("button");
+  b.className = "chip" + (picked.has(name) ? " on" : "");
+  b.textContent = name;
+  b.onclick = () => {
+    picked.has(name) ? picked.delete(name) : picked.add(name);
+    b.classList.toggle("on");
+    updPicked();
+  };
+  $("foods").appendChild(b);
+});
+
+LESSONS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "chip lesson" + (i === 0 ? " on" : "");
+  b.textContent = `《${l.title}》`;
+  b.onclick = () => {
+    lessonIdx = i;
+    [...$("lessons").children].forEach((c, j) => c.classList.toggle("on", j === i));
+    if ($("lesson").classList.contains("show")) render();
+  };
+  $("lessons").appendChild(b);
+});
+
+function currentItems(){
+  const typed = $("custom").value.trim();
+  if (typed) return typed.replace(/，/g, ",").split(",").map(s => s.trim()).filter(Boolean);
+  return [...picked];
+}
+
+function updPicked(){
+  const it = currentItems();
+  $("picked").textContent = "当前订单：" + (it.length ? it.join("、") : "（还没选，默认给一份巨无霸）");
+}
+
+$("custom").addEventListener("input", updPicked);
+
+/* ── 生 成 ── */
+function render(){
+  let items = currentItems();
+  if (!items.length) items = ["巨无霸","中薯条","可乐"];
+  const d = compose(items, LESSONS[lessonIdx]);
+  $("lesson").innerHTML = `
+    <div class="lessno">麦门语文课 · 第 ${String(d.no).padStart(3,"0")} 课</div>
+    <div class="title">${d.title}</div>
+    <div class="author">${d.author}</div>
+    <div class="note">（根据你的订单改编）</div>
+    <div class="rule"></div>
+    <div class="body">
+      <p class="open">${d.opening}</p>
+      ${d.body.map(p => `<p>${p}</p>`).join("")}
+      ${d.ending ? `<p class="end">${d.ending}</p>` : ""}
+    </div>
+    <div class="qhead">课 后 习 题</div>
+    <div class="qs">${d.questions.map(q => `<p>${q}</p>`).join("")}</div>
+    <div class="foot">本课订单：<b>${d.items.join("、")}</b></div>`;
+  $("lesson").classList.add("show");
+}
+
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 1800);
+}
+
+$("go").onclick = render;
+
+$("again").onclick = () => {
+  lessonIdx = (lessonIdx + 1) % LESSONS.length;
+  [...$("lessons").children].forEach((c, j) => c.classList.toggle("on", j === lessonIdx));
+  render();
+};
+
+$("copy").onclick = async () => {
+  const el = $("lesson");
+  if (!el.classList.contains("show")) { toast("先生成一篇吧"); return; }
+  const txt = el.innerText.replace(/\n{3,}/g, "\n\n").trim();
+  try {
+    await navigator.clipboard.writeText(txt);
+    toast("已复制，去发给朋友吧");
+  } catch {
+    const r = document.createRange(); r.selectNodeContents(el);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    toast("已选中，按 Ctrl/⌘+C 复制");
+  }
+};
+
+updPicked();
+render();
+</script>
+</body>
+</html>

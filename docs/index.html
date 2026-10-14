@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麦门语文课 · 把你的订单改写成语文课本</title>
+<meta name="description" content="选几样麦当劳，挑一篇课文，看你的订单被改写成《背影》《孔乙己》《岳阳楼记》。不需要 Token，打开就能玩。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="麦门语文课 · 把你的订单改写成语文课本">
+<meta property="og:description" content="选几样麦当劳，挑一篇课文，看你的订单被改写成《背影》《孔乙己》《岳阳楼记》。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+<style>
+:root{
+  --bg:#F7F5F0; --paper:#FFFDF8; --ink:#1E2128; --dim:#5C6169; --mute:#8B8F99;
+  --gold:#B08A2E; --red:#9E3B32; --line:rgba(30,33,40,.13);
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;
+  padding:clamp(24px,4.5vw,56px) clamp(14px,3.5vw,36px) 72px}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(176,138,46,.26)}
+.wrap{max-width:760px;margin:0 auto}
+
+/* ── 抬头 ── */
+header{text-align:center;margin-bottom:clamp(22px,3.5vw,36px)}
+h1{font-family:var(--serif);font-size:clamp(24px,5vw,40px);font-weight:700;letter-spacing:.1em}
+.tagline{margin-top:10px;font-size:clamp(12.5px,1.7vw,14px);color:var(--dim);letter-spacing:.08em}
+.tagline b{color:var(--gold);font-weight:500}
+
+/* ── 控制面板 ── */
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+  padding:clamp(16px,2.6vw,24px);margin-bottom:clamp(16px,2.4vw,22px)}
+.lbl{font-size:11px;letter-spacing:.3em;color:var(--mute);margin-bottom:11px}
+.lbl:not(:first-child){margin-top:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:13px;padding:7px 14px;border-radius:99px;border:1px solid var(--line);
+  background:transparent;color:var(--dim);cursor:pointer;transition:all .2s;font-family:inherit}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.lesson{font-family:var(--serif);font-size:13.5px}
+.chip.lesson.on{background:var(--gold);border-color:var(--gold)}
+
+input[type=text]{width:100%;margin-top:11px;padding:11px 14px;font-size:13.5px;
+  border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);
+  font-family:inherit}
+input[type=text]:focus{outline:none;border-color:var(--gold)}
+.hint{margin-top:9px;font-size:11.5px;color:var(--mute)}
+
+/* ── 按钮 ── */
+.acts{display:flex;gap:10px;margin:clamp(18px,2.6vw,24px) 0;flex-wrap:wrap}
+.btn{flex:1;min-width:130px;padding:14px 20px;border-radius:11px;font-size:14.5px;
+  letter-spacing:.1em;cursor:pointer;border:none;font-family:inherit;transition:all .22s}
+.btn.pri{background:var(--ink);color:#fff}
+.btn.pri:hover{background:var(--gold)}
+.btn.sec{background:transparent;border:1px solid var(--line);color:var(--dim);flex:0 0 auto;min-width:96px}
+.btn.sec:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── 课文卡片 ── */
+#lesson{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+  padding:clamp(24px,4.5vw,52px) clamp(18px,4vw,56px);
+  box-shadow:0 14px 44px rgba(30,33,40,.07);display:none}
+#lesson.show{display:block}
+.lessno{text-align:center;font-size:11px;letter-spacing:.34em;color:var(--mute);margin-bottom:22px}
+.title{text-align:center;font-family:var(--serif);font-size:clamp(24px,4.4vw,34px);
+  font-weight:700;letter-spacing:.18em}
+.author{text-align:center;margin-top:9px;font-size:13.5px;color:var(--dim);letter-spacing:.14em}
+.note{text-align:center;margin-top:5px;font-size:11.5px;color:var(--mute);letter-spacing:.1em}
+.rule{height:1px;background:var(--line);margin:clamp(20px,3.4vw,32px) 0}
+.body p{font-family:var(--serif);font-size:clamp(14.5px,2vw,16px);line-height:2.15;
+  text-indent:2em;margin-bottom:.9em;text-align:justify}
+.body p.open{text-indent:2em;color:var(--red)}
+.body p.end{color:var(--dim);font-style:italic}
+.qhead{text-align:center;font-family:var(--serif);font-size:15px;font-weight:700;
+  letter-spacing:.5em;color:var(--ink);margin:clamp(24px,4vw,38px) 0 clamp(14px,2vw,20px)}
+.qs{counter-reset:q}
+.qs p{font-family:var(--serif);font-size:clamp(13.5px,1.85vw,15px);line-height:2;
+  margin-bottom:.7em;padding-left:1.9em;position:relative;text-align:justify}
+.qs p::before{counter-increment:q;content:counter(q) "．";position:absolute;left:0;color:var(--gold)}
+.foot{margin-top:clamp(22px,3.4vw,32px);padding-top:16px;border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--mute);text-align:center;letter-spacing:.06em}
+.foot b{color:var(--dim);font-weight:500}
+
+/* ── 页脚 ── */
+footer{margin-top:clamp(30px,5vw,52px);text-align:center;font-size:12px;color:var(--mute);line-height:2.1}
+footer a{color:var(--gold)}
+.toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,20px);opacity:0;
+  background:var(--ink);color:#fff;font-size:13px;padding:11px 22px;border-radius:99px;
+  transition:all .3s;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:600px){
+  .btn{min-width:0}
+  .btn.sec{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>麦门语文课</h1>
+    <div class="tagline">选几样麦当劳，挑一篇课文，<b>看你的订单被改写成什么</b></div>
+  </header>
+
+  <div class="panel">
+    <div class="lbl">点 你 吃 了 什 么</div>
+    <div class="chips" id="foods"></div>
+    <input type="text" id="custom" placeholder="也可以直接打字，用逗号分隔：巨无霸, 中薯条, 可乐" autocomplete="off">
+    <div class="hint" id="picked">当前订单：巨无霸、中薯条、可乐</div>
+
+    <div class="lbl">挑 一 篇 课 文</div>
+    <div class="chips" id="lessons"></div>
+  </div>
+
+  <div class="acts">
+    <button class="btn pri" id="go">生 成 课 文</button>
+    <button class="btn sec" id="again">换一篇</button>
+    <button class="btn sec" id="copy">复制</button>
+  </div>
+
+  <article id="lesson"></article>
+
+  <footer>
+    麦门语文课 · 麦当劳程序员节创意开发大赛参赛作品<br>
+    非麦当劳官方产品 · 课文均为戏仿，与原作无关<br>
+    <a href="https://github.com/miaoyhcat/mcd-chinese-class">GitHub 仓库</a>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* 课文模板由 lessons.json 生成，构建时内联进来（见 build_web.py） */
+const LESSONS = [{"id": "beiying", "title": "背影", "author": "朱自清", "tag": "写人记事 · 深情", "opening": "我与那{main}不相见已二年余了，我最不能忘记的是它的背影。", "body": ["那年秋天，祖母死了，父亲的差使也交卸了，正是祸不单行的日子。我从北京到了徐州，打算跟着父亲奔丧回家。到南京时，父亲因为事忙，本已说定不送我，叫旅馆里一个熟识的茶房陪我同去。他再三嘱咐茶房，甚是仔细。但他终于不放心，怕茶房不妥帖；颇踌躇了一会。其实我那年已二十岁，北京已来往过两三次，是没有什么要紧的了。他踌躇了一会，终于决定还是自己送我去。", "我说道：“爸爸，你走吧。”他望车外看了看，说：“我买几个{main}去。你就在此地，不要走动。”", "我看见他戴着黑布小帽，穿着黑布大马褂，深青布棉袍，蹒跚地走到柜台边，慢慢探身下去，尚不大难。可是他穿过点餐的人群，要爬上那边月台，就不容易了。他用两手攀着上面，两脚再向上缩；他手里那袋{side}晃来晃去的样子，显出努力的样子。这时我看见他的背影，我的泪很快地流下来了。", "我赶紧拭干了泪。怕他看见，也怕别人看见。我再向外看时，他已抱了{main}往回走了。到这边时，我赶紧去搀他。他和我走到车上，将{main}一股脑儿放在我的皮大衣上。于是扑扑衣上的泥土，心里很轻松似的。", "过一会说：“我走了，到那边来信！”我望着他走出去。他走了几步，回过头看见我，说：“进去吧，里边没人。”等他的背影混入来来往往的人里，再找不着了，我便进来坐下，我的眼泪又来了。"], "ending": "我读到此处，在晶莹的泪光中，又看见那个热气腾腾的、{main}的背影。唉！我不知何时再能与他相见！", "questions": ["文中“我买几个{main}去”一句单独成段，有什么表达效果？", "作者描写父亲越过柜台、攀上月台的细节，用了哪些动词？这样写有什么好处？", "“我的泪很快地流下来了”与“我的眼泪又来了”，两处流泪的原因有何不同？", "本文题为《背影》，如果改成《{main}》，表达效果会有什么变化？"]}, {"id": "kongyiji", "title": "孔乙己", "author": "鲁迅", "tag": "小说 · 冷峻", "opening": "鲁镇的麦当劳的格局，是和别处不同的：都是当街一个曲尺形的大柜台，柜里面预备着热水，可以随时温{drink}。", "body": ["点餐的人，傍午傍晚散了工，每每花二十七块钱，买一个{main}——这是二十多年前的事，现在每个要涨到三十块——靠柜外站着，热热地吃了休息。", "我从十二岁起，便在镇口的麦当劳里当伙计。掌柜说，样子太傻，怕侍候不了主顾，就在柜台里做点事了。", "孔乙己是站着吃{main}而穿长衫的唯一的人。他身材很高大；青白脸色，皱纹间时常夹些伤痕；一部乱蓬蓬的花白的胡子。穿的虽然是长衫，可是又脏又破，似乎十多年没有补，也没有洗。", "孔乙己一到店，所有点餐的人便都看着他笑，有的叫道，“孔乙己，你脸上又添上新伤疤了！”他不回答，对柜里说，“要一个{main}，{items}。”便排出三十块钱。", "他们又故意的高声嚷道，“你一定又偷了人家的东西了！”孔乙己睁大眼睛说，“你怎么这样凭空污人清白……”", "“什么清白？我前天亲眼见你偷了隔壁的{side}，吊着打。”", "孔乙己便涨红了脸，额上的青筋条条绽出，争辩道，“窃{side}不能算偷……窃{side}！……读书人的事，能算偷么？”接连便是难懂的话，什么“君子固穷”，什么“者乎”之类，引得众人都哄笑起来：店内外充满了快活的空气。"], "ending": "我到现在终于没有见——大约孔乙己的确已经戒了。", "questions": ["“站着吃{main}而穿长衫”这一形象有什么典型意义？", "“窃{side}不能算偷”这句话反映了孔乙己怎样的性格？", "文中反复出现“店内外充满了快活的空气”，作者这样写的用意是什么？", "如果把结尾改成“孔乙己后来升职加薪了”，小说的主题会发生什么变化？"]}, {"id": "baicaoyuan", "title": "从百草园到三味书屋", "author": "鲁迅", "tag": "散文 · 童趣", "opening": "我家的后面有一个很大的园，相传叫作百草园。", "body": ["不必说金黄的{side}，松软的{main}，冰镇的{drink}，酥脆的鸡块；也不必说骑手在檐下长鸣，胖乎乎的食客伏在柜台旁，轻捷的叫天子忽然从草间直窜向云霄里去了。单是周围的短短的泥墙根一带，就有无限趣味。", "我于是常常在柜台边徘徊，翻开断砖来，有时会遇见蜈蚣；还有斑蝥，倘若用手指按住它的脊梁，便会啪的一声，从后窍喷出一阵烟雾。", "出门向东，不上半里，走过一道石桥，便是三味书屋了。从一扇黑油的竹门进去，第三间是书房。中间挂着一块扁道：三味书屋。", "先生读书入神的时候，于我们是很相宜的。有几个便用纸糊的盔甲套在指甲上做戏。我是画画儿，用一种叫作“荆川纸”的，蒙在小说的绣像上一个个描下来，像习字时候的影写一样。读的书多起来，画的画也多起来；书没有读成，画的成绩却不少了，最成片段的是《{main}》的绣像，都有一大本。"], "ending": "后来，因为要钱用，卖给一个有钱的同窗了。他的父亲是开锡箔店的；听说现在自己已经做了店主，而且快要升到绅士的地位了。这东西早已没有了罢。", "questions": ["“不必说……也不必说……单是……”这个句式在文中起什么作用？请仿写一句，对象限定为一家便利店。", "作者详写百草园、略写三味书屋，这样安排有什么好处？", "文中的“我”把菜单描成绣像，这一细节表现了什么？"]}, {"id": "guxiang", "title": "故乡", "author": "鲁迅", "tag": "小说 · 沉郁", "opening": "我冒了严寒，回到相隔二千余里、别了二十余年的故乡去。", "body": ["我冒了严寒，回到相隔二十分钟、别了三天的{store}去。", "时候既然是深冬；渐近故乡时，天气又阴晦了，冷风吹进船舱中，呜呜的响，从篷隙向外一望，苍黄的天底下，远近横着几个萧索的荒村，没有一些活气。我的心禁不住悲凉起来了。", "阿！这不是我二十年来时时记得的{store}？", "我所记得的{store}全不如此。我的{store}好得多了。但要我记起他的美丽，说出他的佳处来，却又没有影像，没有言辞了。仿佛也就如此。", "第二日清早晨我到了我家的门口了。瓦楞上许多枯草的断茎当风抖着，正在说明这老屋难免易主的原因。几房的本家大约已经搬走了，所以很寂静。", "这时候，我的脑里忽然闪出一幅神异的图画来：深蓝的天空中挂着一轮金黄的圆月，下面是海边的沙地，都种着一望无际的碧绿的{side}。其间有一个十一二岁的少年，项带银圈，手捏一柄钢叉，向一匹猹尽力的刺去，那猹却将身一扭，反从他的胯下逃走了。", "这少年便是闰土。"], "ending": "我想：希望是本无所谓有，无所谓无的。这正如地上的{side}；其实地上本没有{side}，点的人多了，也便成了{side}。", "questions": ["“相隔二十分钟、别了三天”与“二千余里、二十余年”并置，产生了怎样的效果？", "文中“这不是我二十年来时时记得的{store}”表达了怎样的情绪？", "结尾化用了哪一句原文？改动后是削弱了还是强化了原意？"]}, {"id": "yueyanglou", "title": "岳阳楼记", "author": "范仲淹", "tag": "文言 · 议论", "opening": "庆历四年春，滕子京谪守巴陵郡。越明年，政通人和，百废具兴。", "body": ["二零二六年秋，予谪守工位。越明年，需求不断，加班不休，乃重修点餐之术，刻唐贤今人诗赋于其上。属予作文以记之。", "予观夫麦门胜状，在一个“薯”字。衔山吞江，浩浩汤汤，横无际涯；朝晖夕阴，气象万千。此则{store}之大观也，前人之述备矣。", "然则北通{drink}，南极{main}，迁客骚人，多会于此，览物之情，得无异乎？", "若夫淫雨霏霏，连月不开，阴风怒号，浊浪排空；日星隐曜，山岳潜形；商旅不行，樯倾楫摧；薄暮冥冥，虎啸猿啼。登斯楼也，则有去国怀乡，忧谗畏讥，满目萧然，感极而悲者矣。", "至若春和景明，波澜不惊，上下天光，一碧万顷；沙鸥翔集，锦鳞游泳；岸芷汀兰，郁郁青青。而或长烟一空，皓月千里，浮光跃金，静影沉璧，渔歌互答，此乐何极！登斯楼也，则有心旷神怡，宠辱偕忘，把{drink}临风，其喜洋洋者矣。", "嗟夫！予尝求古仁人之心，或异二者之为，何哉？不以物喜，不以己悲；居庙堂之高则忧其民；处江湖之远则忧其君。是进亦忧，退亦忧。然则何时而乐耶？其必曰“先餐之饱而饱，后餐之饿而饿”乎。噫！微斯人，吾谁与归？"], "ending": "时二零二六年十月，记于工位。", "questions": ["“先餐之饱而饱，后餐之饿而饿”化用了哪一句名言？改动后产生了什么效果？", "本文写景部分大量使用四字短语，有什么表达效果？", "作者说“不以物喜，不以己悲”，又说“感极而悲”“其喜洋洋”，这两者矛盾吗？为什么？"]}, {"id": "hetang", "title": "荷塘月色", "author": "朱自清", "tag": "散文 · 抒情", "opening": "这几天心里颇不宁静。", "body": ["今晚在工位上坐着乘凉，忽然想起日日走过的{store}，在这满月的光里，总该另有一番样子吧。", "月亮渐渐地升高了，窗外马路上孩子们的欢笑，已经听不见了；妻在屋里拍着闰儿，迷迷糊糊地哼着眠歌。我悄悄地披了大衫，带上门出去。", "沿着{store}，是一条曲折的小煤屑路。这是一条幽僻的路；白天也少人走，夜晚更加寂寞。", "路上只我一个人，背着手踱着。这一片天地好像是我的；我也像超出了平常的自己，到了另一世界里。我爱热闹，也爱冷静；爱群居，也爱独处。像今晚上，一个人在这苍茫的月下，什么都可以想，什么都可以不想，便觉是个自由的人。", "于是想起{main}来了。曲曲折折的餐盘上面，弥望的是田田的{side}。{side}出水很高，像亭亭的舞女的裙。层层的{side}中间，零星地点缀着些白花，有袅娜地开着的，有羞涩地打着朵儿的；正如一粒粒的明珠，又如碧天里的星星，又如刚出浴的美人。", "月光如流水一般，静静地泻在这一片{side}上。薄薄的青雾浮起在餐盘里。{side}仿佛在牛乳中洗过一样；又像笼着轻纱的梦。", "这时候{side}与{main}也有一丝的颤动，像闪电般，霎时传过餐盘的那边去了。{side}本是肩并肩密密地挨着，这便宛然有了一道凝碧的波痕。"], "ending": "这样想着，猛一抬头，不觉已是自己的门前；轻轻地推门进去，什么声息也没有，妻已睡熟好久了。（桌上那盒{main}，也凉了好久了。）", "questions": ["“这几天心里颇不宁静”作为开篇，在全文中起什么作用？", "本文写景细腻，请分析“泻”“浮”“洗”三个动词的表达效果。", "结尾写“妻已睡熟好久了”，与“{main}也凉了好久了”并置，产生了怎样的意味？"]}];
+const FALLBACK = {"main": "巨无霸", "side": "薯条", "drink": "可乐", "store": "麦当劳"};
+
+/* ── 与 mcd_chinese.py 保持一致的分类逻辑 ── */
+const DRINK_WORDS = ["可乐","雪碧","芬达","咖啡","拿铁","美式","茶","奶茶","果汁","橙汁","豆浆","牛奶","水"];
+// 注意别放「鸡腿」——「板烧鸡腿堡」「麦辣鸡腿堡」是汉堡，会被误判成小食
+const SIDE_WORDS  = ["薯条","鸡块","鸡翅","派","沙拉","玉米","洋葱圈","冰淇淋","麦旋风","新地","圣代","蛋挞","水果"];
+const MAIN_MARKERS = ["堡","卷","饭","粥"];
+const SIZE_PREFIX = ["超大","大","中","小"];
+
+const stripSize = s => { for (const p of SIZE_PREFIX)
+  if (s.startsWith(p) && s.length > p.length + 1) return s.slice(p.length); return s; };
+
+function classify(items){
+  // 与 mcd_chinese.py 的 classify() 保持一致：三者互不重叠
+  const drinks = items.filter(i => DRINK_WORDS.some(w => i.includes(w)));
+  const mains = [], sides = [];
+  for (const i of items){
+    if (drinks.includes(i)) continue;
+    if (MAIN_MARKERS.some(w => i.includes(w))) mains.push(i);
+    else sides.push(i);
+  }
+  if (!mains.length){
+    const first = items.find(i => !drinks.includes(i)) ?? items[0];
+    mains.push(first);
+    for (let k = sides.length - 1; k >= 0; k--) if (sides[k] === first) sides.splice(k, 1);
+  }
+  return {mains, sides, drinks};
+}
+
+function fields(items){
+  const {mains, sides, drinks} = classify(items);
+  const uniq = [...new Set(items)];
+  return {
+    main: mains[0],
+    side: sides.length ? stripSize(sides[0]) : FALLBACK.side,
+    drink: drinks.length ? stripSize(drinks[0]) : FALLBACK.drink,
+    items: uniq.join("、"),
+    count: items.length,
+    store: FALLBACK.store,
+  };
+}
+
+const fill = (t, f) => t.replace(/\{(\w+)\}/g, (m, k) => (k in f ? f[k] : m));
+
+function lessonNumber(items){
+  let h = 0;
+  const s = items.join("|");
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 999983;
+  return h % 999 + 1;
+}
+
+function compose(items, lesson){
+  const f = fields(items);
+  return {
+    no: lessonNumber(items),
+    title: lesson.title, author: lesson.author,
+    opening: fill(lesson.opening, f),
+    body: lesson.body.map(p => fill(p, f)),
+    ending: lesson.ending ? fill(lesson.ending, f) : "",
+    questions: lesson.questions.map(q => fill(q, f)),
+    items,
+  };
+}
+
+/* ── 状 态 ── */
+const FOODS = ["巨无霸","麦辣鸡腿堡","板烧鸡腿堡","双层吉士堡","麦香鱼",
+               "中薯条","麦乐鸡","鸡翅","苹果派","玉米杯",
+               "可乐","雪碧","芬达","拿铁","橙汁"];
+const picked = new Set(["巨无霸","中薯条","可乐"]);
+let lessonIdx = 0;
+
+const $ = id => document.getElementById(id);
+
+/* ── 渲染选择区 ── */
+FOODS.forEach(name => {
+  const b = document.createElement("button");
+  b.className = "chip" + (picked.has(name) ? " on" : "");
+  b.textContent = name;
+  b.onclick = () => {
+    picked.has(name) ? picked.delete(name) : picked.add(name);
+    b.classList.toggle("on");
+    updPicked();
+  };
+  $("foods").appendChild(b);
+});
+
+LESSONS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "chip lesson" + (i === 0 ? " on" : "");
+  b.textContent = `《${l.title}》`;
+  b.onclick = () => {
+    lessonIdx = i;
+    [...$("lessons").children].forEach((c, j) => c.classList.toggle("on", j === i));
+    if ($("lesson").classList.contains("show")) render();
+  };
+  $("lessons").appendChild(b);
+});
+
+function currentItems(){
+  const typed = $("custom").value.trim();
+  if (typed) return typed.replace(/，/g, ",").split(",").map(s => s.trim()).filter(Boolean);
+  return [...picked];
+}
+
+function updPicked(){
+  const it = currentItems();
+  $("picked").textContent = "当前订单：" + (it.length ? it.join("、") : "（还没选，默认给一份巨无霸）");
+}
+
+$("custom").addEventListener("input", updPicked);
+
+/* ── 生 成 ── */
+function render(){
+  let items = currentItems();
+  if (!items.length) items = ["巨无霸","中薯条","可乐"];
+  const d = compose(items, LESSONS[lessonIdx]);
+  $("lesson").innerHTML = `
+    <div class="lessno">麦门语文课 · 第 ${String(d.no).padStart(3,"0")} 课</div>
+    <div class="title">${d.title}</div>
+    <div class="author">${d.author}</div>
+    <div class="note">（根据你的订单改编）</div>
+    <div class="rule"></div>
+    <div class="body">
+      <p class="open">${d.opening}</p>
+      ${d.body.map(p => `<p>${p}</p>`).join("")}
+      ${d.ending ? `<p class="end">${d.ending}</p>` : ""}
+    </div>
+    <div class="qhead">课 后 习 题</div>
+    <div class="qs">${d.questions.map(q => `<p>${q}</p>`).join("")}</div>
+    <div class="foot">本课订单：<b>${d.items.join("、")}</b></div>`;
+  $("lesson").classList.add("show");
+}
+
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 1800);
+}
+
+$("go").onclick = render;
+
+$("again").onclick = () => {
+  lessonIdx = (lessonIdx + 1) % LESSONS.length;
+  [...$("lessons").children].forEach((c, j) => c.classList.toggle("on", j === lessonIdx));
+  render();
+};
+
+$("copy").onclick = async () => {
+  const el = $("lesson");
+  if (!el.classList.contains("show")) { toast("先生成一篇吧"); return; }
+  const txt = el.innerText.replace(/\n{3,}/g, "\n\n").trim();
+  try {
+    await navigator.clipboard.writeText(txt);
+    toast("已复制，去发给朋友吧");
+  } catch {
+    const r = document.createRange(); r.selectNodeContents(el);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    toast("已选中，按 Ctrl/⌘+C 复制");
+  }
+};
+
+updPicked();
+render();
+</script>
+</body>
+</html>

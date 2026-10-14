@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+_test_*.js
+_shot_*.js
+demo-desktop.png
+demo-mobile.png
+lesson-hetang.png
