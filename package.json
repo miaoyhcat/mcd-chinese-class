@@ -1,0 +1,16 @@
+{
+  "name": "mcd-chinese-class-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "麦门语文课 · 浏览器端测试（可选依赖）",
+  "scripts": {
+    "test:python": "python tests/test_mcd_chinese.py",
+    "test:web": "node tests/test_web.js",
+    "test:live": "node tests/test_live.js",
+    "build": "python build_web.py"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.48.0"
+  },
+  "comment": "playwright-core 只用于浏览器端测试。它不带浏览器本体，脚本会优先用系统已装的 Edge / Chrome；两者都没有时会报告 SKIP（退出码 2），不会伪造通过。"
+}

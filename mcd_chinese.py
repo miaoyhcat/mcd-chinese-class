@@ -349,7 +349,9 @@ def _lines_with_qty(order):
                 sn = str(sub.get("productName") or sub.get("name") or "").strip()
                 if sn and sn not in parent:
                     # 套餐子项的份数一般跟套餐走，接口没给就按 1 算
-                    add(sn, sub.get("quantity") or 1 if sub.get("quantity") else qty)
+                    # 子项没给数量时按父项份数算：点了 2 份套餐，
+                    # 里面的薯条也是 2 份。这个推断写在这里，不靠运算符优先级凑。
+                    add(sn, sub.get("quantity") or qty)
 
     merged = {}
     order_out = []

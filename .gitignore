@@ -4,3 +4,7 @@ _exported.png
 _shot_*.js
 _probe_mcp.py
 _orderlist_raw.json
+node_modules/
+package-lock.json
+_src.json
+_exported.png

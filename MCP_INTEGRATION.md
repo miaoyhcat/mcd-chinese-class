@@ -23,8 +23,8 @@
 
 ### 接入配置示例
 
-仓库里的 [`mcp-config.example.json`](mcp-config.example.json) 可直接粘进支持
-Streamable HTTP 的 MCP 客户端（WorkBuddy / Cherry Studio / Cursor / Trae 等）：
+仓库里的 [`mcp-config.example.json`](mcp-config.example.json) 供支持
+Streamable HTTP 的 MCP 客户端参考（WorkBuddy / Cherry Studio / Cursor / Trae 等）：
 
 ```json
 {
@@ -32,15 +32,24 @@ Streamable HTTP 的 MCP 客户端（WorkBuddy / Cherry Studio / Cursor / Trae �
     "mcd-mcp": {
       "type": "streamablehttp",
       "url": "https://mcp.mcd.cn",
-      "headers": { "Authorization": "Bearer YOUR_MCP_TOKEN_HERE" }
+      "headers": { "Authorization": "Bearer ${MCD_MCP_TOKEN}" }
     }
   }
 }
 ```
 
-**这份示例是核对过的，不是照抄文档**：`url` 与 `Authorization` 的写法，
-本项目客户端在 2026-10-15 用真实 Token 走通过（握手成功、`tools/list`
-返回 35 个工具）。文件里只有占位符，不含任何真实凭据。
+**关于 `${MCD_MCP_TOKEN}` 这个写法**：它是**环境变量占位符**，
+用来避免真实凭据进仓库 —— 活动规则也要求示例只使用占位符。
+
+但这**不代表所有 MCP 客户端都会自动做变量插值**。有些客户端支持 `${VAR}`
+展开，有些需要你手动填值，有些要求把 Token 放进独立的凭据存储。请按你所用的
+客户端文档来处理：**在客户端里配置环境变量或凭据项，而不是把真实 Token
+写进这个提交进仓库的文件**。
+
+**实测范围**：`url` 与 `Authorization` 头的实际写法，本项目客户端在 2026-10-15
+用真实 Token 走通过（握手成功、`tools/list` 返回 35 个工具）。
+但**「把这份 JSON 导入某个具体 MCP 客户端并成功调用」这一步没有实测过** ——
+不同客户端对占位符和配置格式的处理不同，需要你按自己的客户端验证。
 
 ---
 
