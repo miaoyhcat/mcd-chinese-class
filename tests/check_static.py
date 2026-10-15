@@ -18,6 +18,15 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+# 英文 Windows 的控制台是 cp1252，直接 print 中文和 ✓ 会崩，先把输出切成 UTF-8
+try:
+    from mcd_chinese import enable_utf8_stdout
+    enable_utf8_stdout()
+except Exception:
+    pass
+
 PASS, FAIL = [], []
 
 
@@ -133,6 +142,10 @@ def main():
                        capture_output=True, text=True, cwd=str(ROOT))
     check("build_web.py 可正常构建（--check）", r.returncode == 0,
           (r.stdout or r.stderr or "").strip()[:140])
+    # 产物必须是 LF：Windows 上 write_text 默认写 CRLF，产物字节和 Linux
+    # 不一致，CI 里那条 git diff 检查就会红。
+    check("docs/index.html 是 LF 换行（不含 CR）",
+          b"\r" not in (ROOT / "docs" / "index.html").read_bytes())
 
     # ── 8. 文档一致性 ──
     print("\n[文档一致性]")

@@ -26,6 +26,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+# 英文 Windows 的控制台是 cp1252，直接 print 中文和 ✓ 会 UnicodeEncodeError 崩，
+# 先把输出切成 UTF-8（和 CLI 用的是同一个函数）
+try:
+    from mcd_chinese import enable_utf8_stdout
+    enable_utf8_stdout()
+except Exception:
+    pass
+
 PASS, FAIL, SKIP = [], [], []
 
 
@@ -239,6 +247,28 @@ def test_compliance(mc):
                         capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT))
     check("docs/index.html 与构建产物一致（--check，不写入）", rb.returncode == 0,
           (rb.stdout or rb.stderr or "").strip()[:140])
+
+    # 产物必须是 LF。Windows 上 write_text 默认把 \n 翻成 \r\n，产物字节
+    # 就和 Linux 上不一样了 —— 本地 --check 因为按文本读（会把 CRLF 折成 LF）
+    # 看不出来，推到 CI 上跑 git diff 立刻红。这里按字节卡住。
+    check("docs/index.html 是 LF 换行（不含 CR）",
+          b"\r" not in (ROOT / "docs" / "index.html").read_bytes())
+
+    # 非 UTF-8 控制台。GitHub 的 windows runner 控制台是 cp1252，
+    # 一 print 中文就 UnicodeEncodeError 崩掉整个进程。用 PYTHONIOENCODING
+    # 在本机复现出同样的条件，而不是只在 CI 上才发现。
+    penv = {**os.environ, "PYTHONIOENCODING": "cp1252"}
+    pr = subprocess.run([sys.executable, str(ROOT / "mcd_chinese.py"), "--demo", "--json"],
+                        capture_output=True, cwd=str(ROOT), env=penv)
+    if pr.returncode != 0:
+        tail = pr.stderr.decode("utf-8", "replace").strip().splitlines()
+        check("cp1252 控制台下不崩且输出 UTF-8", False, (tail[-1] if tail else "")[:120])
+    else:
+        try:
+            json.loads(pr.stdout.decode("utf-8"))
+            check("cp1252 控制台下不崩且输出 UTF-8", True)
+        except Exception as e:
+            check("cp1252 控制台下不崩且输出 UTF-8", False, f"输出不是 UTF-8 JSON：{e}")
 
     # 扫描硬编码凭据
     SEC = re.compile(r"(sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,}"

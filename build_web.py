@@ -63,15 +63,23 @@ def check() -> int:
     为什么要有这个模式：如果检查的方式是「先覆盖产物、再和覆盖前的内容比」，
     那么产物一旦漂移就被就地改回来了 —— 同一个漂移只会被报一次，
     第二次跑就看不出来。这种检查等于没有。
+
+    为什么按**字节**比而不是按文本比：按文本读会走 universal newlines，
+    把 CRLF 悄悄折成 LF，于是「产物是 CRLF、构建器写出 LF」这种差异
+    在本地永远看不出来，推到 CI 上跑 `git diff` 就直接红。按字节比才对得上
+    CI 里那条检查。
     """
     data = json.loads(LESSONS.read_text(encoding="utf-8"))
-    built = build(TPL.read_text(encoding="utf-8"), data)
-    current = OUT.read_text(encoding="utf-8") if OUT.exists() else ""
+    built = build(TPL.read_text(encoding="utf-8"), data).encode("utf-8")
+    current = OUT.read_bytes() if OUT.exists() else b""
     if built == current:
         print("docs/index.html 与构建产物一致 ✓")
         return 0
     print("docs/index.html 与构建产物不一致 —— 请重跑 python build_web.py 并提交")
-    print(f"  当前 {len(current)} 字符 / 应为 {len(built)} 字符")
+    # 只差换行符是最容易反复踩的一种，单独点破
+    if built == current.replace(b"\r\n", b"\n"):
+        print("  内容一样，只差换行符：产物是 CRLF，构建器写出 LF —— CI 会判不同步")
+    print(f"  当前 {len(current)} 字节 / 应为 {len(built)} 字节")
     return 1
 
 
@@ -79,7 +87,11 @@ def main() -> int:
     data = json.loads(LESSONS.read_text(encoding="utf-8"))
     built = build(TPL.read_text(encoding="utf-8"), data)
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(built, encoding="utf-8")
+    # 显式 newline="\n"：Path.write_text 默认会把 \n 翻成 os.linesep，
+    # 于是同一份模板在 Windows 上生成 CRLF、在 Linux 上生成 LF，
+    # 产物字节不一致，CI 的 git diff 检查必然误报。
+    with open(OUT, "w", encoding="utf-8", newline="\n") as f:
+        f.write(built)
     print(f"已生成 {OUT.relative_to(HERE)}  ({len(built.encode('utf-8')) / 1024:.0f} KB, "
           f"自包含，无外部依赖)")
     print(f"  内联课文 {len(data['lessons'])} 篇："

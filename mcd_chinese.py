@@ -29,6 +29,21 @@ LESSONS_PATH = HERE / "lessons.json"
 # 订单返回里有订单号、门店、金额，默认不能进日志。
 DEBUG = bool(os.environ.get("MCD_DEBUG")) or "--debug" in sys.argv
 
+
+def enable_utf8_stdout():
+    """把标准输出/错误切成 UTF-8。
+
+    Windows 上控制台编码跟着系统区域走：中文环境是 GBK（凑巧能编中文），
+    英文环境是 cp1252 —— 后者一 print 中文就 UnicodeEncodeError 直接崩。
+    终端里跑 CLI 的人不该因为系统语言是英文就用不了。
+    errors="replace" 兜底：万一真有编不出的字符，显示成 ? 也比崩掉强。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass        # 被重定向成非 TextIOWrapper（管道/测试捕获）时跳过
+
 # ── 餐品归类 ──
 # 判定按三级优先级走，越具体的规则排越前：
 #   ① 整名精确命中  ② 子串关键词  ③ 后缀命中  ④ 未知兜底（归小食）
@@ -496,6 +511,7 @@ def watch_mcp(interval=20):
 
 # ─────────────────────── 入口 ───────────────────────
 def main(argv=None):
+    enable_utf8_stdout()
     ap = argparse.ArgumentParser(
         description="麦门语文课 · 把你的麦当劳订单改写成语文课本",
         formatter_class=argparse.RawDescriptionHelpFormatter,
