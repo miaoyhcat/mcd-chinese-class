@@ -97,6 +97,9 @@ python mcd_chinese.py --list
 # 输出 Markdown / JSON（便于二次加工）
 python mcd_chinese.py --demo --md
 python mcd_chinese.py --demo --json
+
+# 排查模式：解析失败时打印原始接口返回（含订单号等信息，别外传）
+python mcd_chinese.py --mcp --debug
 ```
 
 ### 点完餐，课文就出来了

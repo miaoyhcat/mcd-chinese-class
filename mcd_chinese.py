@@ -16,6 +16,7 @@
 
 import argparse
 import json
+import os
 import random
 import sys
 import time
@@ -23,6 +24,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 LESSONS_PATH = HERE / "lessons.json"
+
+# 排查模式：只有显式打开才会打印原始接口返回。
+# 订单返回里有订单号、门店、金额，默认不能进日志。
+DEBUG = bool(os.environ.get("MCD_DEBUG")) or "--debug" in sys.argv
 
 # ── 餐品归类 ──
 # 判定按三级优先级走，越具体的规则排越前：
@@ -431,10 +436,18 @@ def order_from_mcp():
 
 
 def _bail(what, why):
-    """解析失败时把原始结构打出来再停，方便对着改。"""
-    print(f"{why}，原始结构如下：", file=sys.stderr)
-    print(json.dumps(what, ensure_ascii=False, indent=2)[:1500], file=sys.stderr)
-    raise SystemExit("请按上面的结构补充解析字段名")
+    """解析失败时停下。
+
+    默认**只报错误类别**，不打印原始返回 —— 订单数据里有订单号、门店、金额，
+    这些不该默认落到日志里。要排查字段名，加 --debug 或设 MCD_DEBUG=1。
+    """
+    print(f"{why}。", file=sys.stderr)
+    if DEBUG:
+        print("原始结构（--debug 模式）：", file=sys.stderr)
+        print(json.dumps(what, ensure_ascii=False, indent=2)[:1500], file=sys.stderr)
+    else:
+        print("  加 --debug 重跑可以看到原始返回结构，方便定位字段名。", file=sys.stderr)
+    raise SystemExit(1)
 
 
 def watch_mcp(interval=20):
@@ -493,6 +506,8 @@ def main(argv=None):
     ap.add_argument("--lesson", help="指定课文 id（见 --list）")
     ap.add_argument("--list", action="store_true", help="列出所有课文")
     ap.add_argument("--interval", type=int, default=20, help="盯单模式的查询间隔秒数（默认 20）")
+    ap.add_argument("--debug", action="store_true",
+                    help="排查模式：解析失败时打印原始接口返回（含订单号等信息，勿外传）")
     ap.add_argument("--json", action="store_true", help="输出 JSON")
     ap.add_argument("--md", action="store_true", help="输出 Markdown")
     args = ap.parse_args(argv)

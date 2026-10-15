@@ -227,6 +227,27 @@ def test_compliance(mc):
             hits.append(str(f.relative_to(ROOT)))
     check("仓库内无硬编码凭据", not hits, str(hits))
 
+    # 错误日志不该泄露订单数据（方案 3.3）
+    import os as _os
+    code = """
+import sys; sys.path.insert(0, ".")
+import mcd_chinese as m
+try:
+    m._bail({"orderId": "SECRET-99999", "storeName": "某某店"}, "解析失败")
+except SystemExit:
+    pass
+"""
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True,
+                       text=True, encoding="utf-8", cwd=str(ROOT),
+                       env={**_os.environ, "MCD_DEBUG": ""})
+    check("默认模式不打印原始订单数据",
+          "SECRET-99999" not in r.stderr and "某某店" not in r.stderr)
+    check("默认模式给出 --debug 提示", "--debug" in r.stderr)
+    r2 = subprocess.run([sys.executable, "-c", code], capture_output=True,
+                        text=True, encoding="utf-8", cwd=str(ROOT),
+                        env={**_os.environ, "MCD_DEBUG": "1"})
+    check("--debug 模式才打印原始结构", "SECRET-99999" in r2.stderr)
+
     # 编译产物里不该有习题残留
     built = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
     check("网页产物不含习题", "习题" not in built and "questions" not in built)
