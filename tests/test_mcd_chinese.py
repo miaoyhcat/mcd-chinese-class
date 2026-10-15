@@ -254,21 +254,36 @@ def test_compliance(mc):
     check("docs/index.html 是 LF 换行（不含 CR）",
           b"\r" not in (ROOT / "docs" / "index.html").read_bytes())
 
-    # 非 UTF-8 控制台。GitHub 的 windows runner 控制台是 cp1252，
-    # 一 print 中文就 UnicodeEncodeError 崩掉整个进程。用 PYTHONIOENCODING
-    # 在本机复现出同样的条件，而不是只在 CI 上才发现。
+    # 非 UTF-8 控制台。GitHub 的 windows runner 控制台是 cp1252，一 print
+    # 中文就 UnicodeEncodeError 崩掉整个进程。用 PYTHONIOENCODING 在本机
+    # 复现出同样的条件，而不是等推到 CI 上才发现。
+    # 逐个脚本过一遍：这个坑先在 mcd_chinese.py 踩到，改完 build_web.py
+    # 又踩一次 —— 只盯一个脚本等于只堵一个洞。
     penv = {**os.environ, "PYTHONIOENCODING": "cp1252"}
-    pr = subprocess.run([sys.executable, str(ROOT / "mcd_chinese.py"), "--demo", "--json"],
-                        capture_output=True, cwd=str(ROOT), env=penv)
-    if pr.returncode != 0:
+    for label, cmd, mode in (
+        # "json" = 退出码要为 0，且 stdout 本身是合法 UTF-8 JSON
+        # "rc"   = 退出码要为 0（输出是中文提示，不是 JSON，别按 JSON 验）
+        # ""     = 只确认没被编码搞崩；它自己会汇总一堆检查，
+        #          具体结论由 CI 那一步单独跑
+        ("mcd_chinese.py --demo --json",
+         [str(ROOT / "mcd_chinese.py"), "--demo", "--json"], "json"),
+        ("build_web.py --check", [str(ROOT / "build_web.py"), "--check"], "rc"),
+        ("check_static.py", [str(ROOT / "tests" / "check_static.py")], ""),
+    ):
+        pr = subprocess.run([sys.executable, *cmd],
+                            capture_output=True, cwd=str(ROOT), env=penv)
         tail = pr.stderr.decode("utf-8", "replace").strip().splitlines()
-        check("cp1252 控制台下不崩且输出 UTF-8", False, (tail[-1] if tail else "")[:120])
-    else:
-        try:
-            json.loads(pr.stdout.decode("utf-8"))
-            check("cp1252 控制台下不崩且输出 UTF-8", True)
-        except Exception as e:
-            check("cp1252 控制台下不崩且输出 UTF-8", False, f"输出不是 UTF-8 JSON：{e}")
+        why = ""
+        if b"UnicodeEncodeError" in pr.stderr:
+            why = (tail[-1] if tail else "UnicodeEncodeError")[:120]
+        elif mode and pr.returncode != 0:
+            why = (tail[-1] if tail else f"退出码 {pr.returncode}")[:120]
+        elif mode == "json":
+            try:
+                json.loads(pr.stdout.decode("utf-8"))
+            except Exception as e:
+                why = f"输出不是 UTF-8 JSON：{e}"
+        check(f"cp1252 控制台下不崩：{label}", not why, why)
 
     # 扫描硬编码凭据
     SEC = re.compile(r"(sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,}"

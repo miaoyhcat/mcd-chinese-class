@@ -16,6 +16,10 @@ import json
 import sys
 from pathlib import Path
 
+# 和 CLI 共用同一份实现：英文 Windows 的控制台是 cp1252，这个脚本自己
+# 也会 print 中文（"已生成 …"），不处理的话一样是 UnicodeEncodeError。
+from mcd_chinese import enable_utf8_stdout
+
 HERE = Path(__file__).resolve().parent
 LESSONS = HERE / "lessons.json"
 TPL = HERE / "web" / "template.html"
@@ -100,4 +104,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    enable_utf8_stdout()
     sys.exit(check() if "--check" in sys.argv else main())

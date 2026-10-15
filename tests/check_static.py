@@ -139,7 +139,8 @@ def main():
     # --check 只比对不写入。用 build_web.py 直接跑会把漂移就地修好，
     # 同一处漂移第二次就查不出来 —— 那种检查等于没有。
     r = subprocess.run([sys.executable, str(ROOT / "build_web.py"), "--check"],
-                       capture_output=True, text=True, cwd=str(ROOT))
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", cwd=str(ROOT))
     check("build_web.py 可正常构建（--check）", r.returncode == 0,
           (r.stdout or r.stderr or "").strip()[:140])
     # 产物必须是 LF：Windows 上 write_text 默认写 CRLF，产物字节和 Linux
