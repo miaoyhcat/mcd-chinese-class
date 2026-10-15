@@ -1,3 +1,22 @@
-# 关掉所有换行符转换，保证文件在仓库里逐字节一致
-# （CONTEST_DECLARATION.md 按活动规则必须与官方原件完全相同）
+# 默认关掉所有换行符转换
 * -text
+
+# 源码与文档统一 LF。
+#
+# 起因：仓库里混着 CRLF（Windows 上编辑出来的）和 LF（Linux 上生成的），
+# 于是两个问题同时出现 ——
+#   1. 编辑器随便存一下就把整文件 diff 刷满，看不出真实改了什么；
+#   2. build_web.py 在 Linux 上写出 LF、仓库里却存着 CRLF，
+#      于是 CI 里「构建产物是否与提交一致」那条检查永远报红。
+*.py       text eol=lf
+*.js       text eol=lf
+*.json     text eol=lf
+*.yml      text eol=lf
+*.html     text eol=lf
+*.md       text eol=lf
+LICENSE    text eol=lf
+.gitignore text eol=lf
+
+# 例外：参赛声明按活动规则必须与官方原件逐字节相同，
+# 所以它保持原样，任何情况下都不做换行符转换。
+/CONTEST_DECLARATION.md -text
