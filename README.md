@@ -157,12 +157,20 @@ mcd-chinese-class/
 ├── SKILL.md                  # 给 AI Agent 的使用约定
 ├── mcd_chinese.py            # 订单分类、模板选择、课文生成、CLI
 ├── mcd_mcp.py                # 只读 MCP 客户端
+├── COPYRIGHT.md              # 16 篇课文的来源、权利状态与风险清单
 ├── lessons.json              # 16 篇课文模板
 ├── build_web.py              # 根据模板构建静态网页
 ├── web/template.html         # 页面源码（修改页面请编辑这里）
 ├── docs/index.html           # GitHub Pages 实际部署文件（构建产物）
 ├── images/                   # 项目演示图片
-└── tests/                    # Python 与浏览器相关测试
+├── package.json              # 浏览器测试依赖（仅 playwright-core）
+├── .github/workflows/        # CI：语法、生成、构建、静态规则
+└── tests/
+    ├── check_static.py       # 静态合规检查（不联网，任何平台可跑）
+    ├── test_mcd_chinese.py   # Python 功能测试
+    ├── browser.js            # 跨平台浏览器启动器
+    ├── test_web.js           # 浏览器端到端
+    └── test_live.js          # 线上演示页验证
 ```
 
 ### 修改与构建

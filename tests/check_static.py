@@ -117,17 +117,22 @@ def main():
               not re.search(rf'"{re.escape(w)}"', mcp.split("READ_ONLY_TOOLS")[1]
                             .split("}")[0] if "READ_ONLY_TOOLS" in mcp else ""))
     check("客户端声明了只读白名单", "READ_ONLY_TOOLS" in mcp)
-    check("不调用支付相关接口", "pay" not in mcp.lower() or "不" in mcp)
+    # 真检查：白名单之外不得出现任何下单/支付/领券的调用点。
+    # （原来那条 "pay" not in mcp.lower() or "不" in mcp 因为短路恒为真，等于没测，已删。）
+    wl = mcp.split("READ_ONLY_TOOLS")[1].split("}")[0] if "READ_ONLY_TOOLS" in mcp else ""
+    body = mcp.replace(wl, "")          # 去掉白名单本身再看全文
+    calls = re.findall(r"call\s*\(\s*['\"]\s*([\w.-]+)\s*['\"]", body)
+    forbidden = [c for c in calls if c not in wl]
+    check("除白名单外没有别的工具调用点", not forbidden, str(forbidden))
 
     # ── 7. 构建一致性 ──
     print("\n[构建一致性]")
-    before = (ROOT / "docs" / "index.html").read_bytes()
-    r = subprocess.run([sys.executable, str(ROOT / "build_web.py")],
+    # --check 只比对不写入。用 build_web.py 直接跑会把漂移就地修好，
+    # 同一处漂移第二次就查不出来 —— 那种检查等于没有。
+    r = subprocess.run([sys.executable, str(ROOT / "build_web.py"), "--check"],
                        capture_output=True, text=True, cwd=str(ROOT))
-    after = (ROOT / "docs" / "index.html").read_bytes()
-    check("build_web.py 可执行", r.returncode == 0, (r.stderr or "")[:120])
-    check("docs/index.html 与构建产物一致", before == after,
-          "演示页漂移了，请重跑 build_web.py")
+    check("build_web.py 可正常构建（--check）", r.returncode == 0,
+          (r.stdout or r.stderr or "").strip()[:140])
 
     # ── 8. 文档一致性 ──
     print("\n[文档一致性]")

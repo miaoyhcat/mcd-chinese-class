@@ -74,9 +74,10 @@ jobs:
         run: python tests/check_static.py
 
   browser:
-    name: 浏览器端测试（可选）
+    name: 浏览器端测试
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # 不设 continue-on-error：测试「失败」必须让 CI 变红。
+    # 环境不具备时脚本自己返回 2，下面那一步会转成 warning 而不是错误。
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -95,4 +96,14 @@ jobs:
         run: npx playwright install chromium --with-deps || echo "浏览器装不上，后面会 SKIP"
 
       - name: 网页测试
-        run: node tests/test_web.js
+        # 退出码 2 表示 SKIP（环境不具备），转成 warning；
+        # 退出码 1 表示真的失败，必须让构建红掉。
+        run: |
+          set +e
+          node tests/test_web.js
+          code=$?
+          if [ "$code" -eq 2 ]; then
+            echo "::warning::浏览器测试被跳过（环境不具备），这不等于通过"
+            exit 0
+          fi
+          exit $code
