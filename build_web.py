@@ -23,7 +23,11 @@ def main():
         raise RuntimeError('存在未替换的网页构建占位符')
     target = ROOT / 'docs/index.html'
     target.parent.mkdir(exist_ok=True)
-    target.write_text(html,encoding='utf-8')
+    # 显式写死 LF。默认写文件会按 os.linesep 转换，于是同一份模板在 Windows
+    # 上生成 CRLF、在 Linux 上生成 LF。仓库和 CI 都按 LF 走，所以在 Windows 上
+    # 跑一次 unittest，test_build 的「构建产物与仓库提交一致」就会挂。
+    with open(target, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(html)
     print(f'构建完成：{target.relative_to(ROOT)} · {len(html.encode("utf-8")):,} bytes · 全部资源内联')
 
 if __name__ == '__main__':
