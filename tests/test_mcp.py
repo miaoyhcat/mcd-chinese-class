@@ -50,6 +50,33 @@ class MCPTests(unittest.TestCase):
         got=order_items(parent)
         self.assertEqual([(i.name,i.quantity) for i in got],[('巨无霸',3),('中薯条',2),('可乐',2)])
 
+    def test_combo_alias_fields(self):
+        """子项写成 itemName/itemQuantity 时也要展开。
+
+        接口不同版本/不同接口的字段命名不一致。只认 productName 的话，
+        子项会被整段跳过，然后**静默**退回父套餐名 —— 不报错，但结果是错的：
+        本该是「中薯条 + 可乐」，却输出「巨无霸套餐 ×2」。
+        """
+        parent={'orderProductList':[{'itemName':'巨无霸套餐','itemQuantity':2,'comboItemList':[
+          {'itemName':'中薯条','itemQuantity':1},{'itemName':'可乐','itemQuantity':1}]}]}
+        got=order_items(parent)
+        self.assertEqual([(i.name,i.quantity) for i in got],[('中薯条',2),('可乐',2)])
+        self.assertNotIn('巨无霸套餐',[i.name for i in got])
+
+    def test_combo_mixed_field_names(self):
+        """父项用一套命名、子项用另一套，也得能对上。"""
+        parent={'orderProductList':[{'productName':'巨无霸套餐','quantity':1,'comboItemList':[
+          {'itemName':'巨无霸','itemQuantity':1},{'name':'中薯条','quantity':2}]}]}
+        got=order_items(parent)
+        self.assertEqual([(i.name,i.quantity) for i in got],[('巨无霸',1),('中薯条',2)])
+
+    def test_combo_alias_child_without_name(self):
+        """别名都取不到名字时，仍按原逻辑退回父套餐名（不抛异常）。"""
+        parent={'orderProductList':[{'productName':'巨无霸套餐','quantity':3,'comboItemList':[
+          {'unknownKey':'中薯条','quantity':1}]}]}
+        got=order_items(parent)
+        self.assertEqual([(i.name,i.quantity) for i in got],[('巨无霸套餐',3)])
+
     def test_no_token(self):
         with self.assertRaises(MCPError):MCPClient(token='')
 

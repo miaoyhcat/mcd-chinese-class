@@ -167,11 +167,12 @@ python tests/browser_smoke.py
 - 参赛申请：[Issue #716](https://github.com/M-China/mcd-developer-innovation-challenge/issues/716)
 - 活动规则：[activityGuidelines.md](https://github.com/M-China/mcd-developer-innovation-challenge/blob/main/activityGuidelines.md)
 - 必需文件：[参赛声明](CONTEST_DECLARATION.md) · [MCP 集成说明](MCP_INTEGRATION.md) · [脱敏配置](mcp-config.example.json)
+- 合规与验证：[版权说明](COPYRIGHT.md) · [测试与验证记录](TEST_REPORT.md) · [安全说明](SECURITY.md)
 - 未申报 WorkBuddy 专项，也没有伪造 WorkBuddy 集成证明。
 
 比赛奖项和排名按 **官方 Star 排名与资格审核** 认定。零 Star 项目不进入排行榜，只有进入最终榜单且合规审核通过才有获奖资格；本仓库不包含刷 Star 或榜单操作工具。
 
-**知识产权说明：** 本仓库网页及代码采用 MIT 许可证。原创文学戏仿文本仅提供文学灵感来源说明，不声明拥有原作者作品的版权。作品上线前请由仓库维护者复查涉及的文字、图像和品牌素材，合理权利人可通过 [Issues](https://github.com/miaoyhcat/mcd-chinese-class/issues) 联系。
+**知识产权说明：** 本仓库网页及代码采用 MIT 许可证。十六篇课文均为新写的原创文字，只借经典作品的情境与语气，不整段复制原著；逐篇的灵感来源、公有领域状态与仍然存在的风险写在 [COPYRIGHT.md](COPYRIGHT.md) 里（它同时列出了尚未做的核查，不是法律意见）。作品上线前请由仓库维护者复查涉及的文字、图像和品牌素材，合理权利人可通过 [Issues](https://github.com/miaoyhcat/mcd-chinese-class/issues) 联系。
 
 ## ❤️ 适合谁
 

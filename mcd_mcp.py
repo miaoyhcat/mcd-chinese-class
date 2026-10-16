@@ -193,6 +193,24 @@ def latest_valid_order(data):
     return max(active, key=time_value) if active else None
 
 
+# 订单里的字段名在不同接口/不同版本间并不统一。已经用真实返回确认过的是
+# productName + quantity；但官方其它接口的返回示例里出现过 itemName /
+# itemQuantity 的写法。如果只认第一种，套餐子项会整段解析不出来，
+# 于是静默退化成父套餐名（「巨无霸套餐 ×2」而不是「中薯条 + 可乐」）——
+# 不报错，但结果是错的，所以按优先级把别名都认上。
+NAME_KEYS = ('productName', 'name', 'itemName', 'product_name', 'item_name')
+QTY_KEYS = ('quantity', 'itemQuantity', 'item_quantity', 'qty', 'count')
+
+
+def pick_field(mapping, keys):
+    """按优先级取第一个有值的字段；全都没有则返回 None。"""
+    for key in keys:
+        value = mapping.get(key)
+        if value is not None and value != '':
+            return value
+    return None
+
+
 def order_items(order):
     """套餐优先展开真实子项；不凭套餐名猜组件，合并相同商品及数量。"""
     if not isinstance(order, dict):
@@ -210,17 +228,18 @@ def order_items(order):
     for p in lines:
         if not isinstance(p, dict):
             continue
-        name = p.get('productName') or p.get('name') or ''
-        parent_qty = quantity(p.get('quantity'))
+        name = pick_field(p, NAME_KEYS) or ''
+        parent_qty = quantity(pick_field(p, QTY_KEYS))
         children = p.get('comboItemList') or []
         found = []
         if isinstance(children, list):
             for child in children:
                 if isinstance(child, dict):
-                    child_name = child.get('productName') or child.get('name') or ''
+                    child_name = pick_field(child, NAME_KEYS) or ''
                     if isinstance(child_name, str) and child_name.strip():
                         # 接口未保证子项数量的语义，按每套餐子项数量解释；在文档中声明。
-                        found.append(Item(child_name.strip(), min(99, quantity(child.get('quantity')) * parent_qty)))
+                        child_qty = quantity(pick_field(child, QTY_KEYS))
+                        found.append(Item(child_name.strip(), min(99, child_qty * parent_qty)))
         if found:
             items.extend(found)
         elif isinstance(name, str) and name.strip():
