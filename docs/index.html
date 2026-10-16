@@ -1,495 +1,370 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>麦门语文课 · 把你的订单改写成语文课本</title>
-<meta name="description" content="选几样麦当劳，挑一篇课文，看你的订单被改写成《背影》《孔乙己》《岳阳楼记》。不需要 Token，打开就能玩。">
-<meta property="og:type" content="website">
-<meta property="og:title" content="麦门语文课 · 把你的订单改写成语文课本">
-<meta property="og:description" content="选几样麦当劳，挑一篇课文，看你的订单被改写成《背影》《孔乙己》《岳阳楼记》。">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
-<style>
-:root{
-  --bg:#F7F5F0; --paper:#FFFDF8; --ink:#1E2128; --dim:#5C6169; --mute:#8B8F99;
-  --gold:#B08A2E; --red:#9E3B32; --line:rgba(30,33,40,.13);
-  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
-  --sans:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
-}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;
-  padding:clamp(24px,4.5vw,56px) clamp(14px,3.5vw,36px) 72px}
-a{color:inherit;text-decoration:none}
-::selection{background:rgba(176,138,46,.26)}
-.wrap{max-width:760px;margin:0 auto}
-
-/* ── 抬头 ── */
-header{text-align:center;margin-bottom:clamp(22px,3.5vw,36px)}
-h1{font-family:var(--serif);font-size:clamp(24px,5vw,40px);font-weight:700;letter-spacing:.1em}
-.tagline{margin-top:10px;font-size:clamp(12.5px,1.7vw,14px);color:var(--dim);letter-spacing:.08em}
-.tagline b{color:var(--gold);font-weight:500}
-
-/* ── 控制面板 ── */
-.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;
-  padding:clamp(16px,2.6vw,24px);margin-bottom:clamp(16px,2.4vw,22px)}
-.lbl{font-size:11px;letter-spacing:.3em;color:var(--mute);margin-bottom:11px}
-.lbl:not(:first-child){margin-top:18px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{font-size:13px;padding:7px 14px;border-radius:99px;border:1px solid var(--line);
-  background:transparent;color:var(--dim);cursor:pointer;transition:all .2s;font-family:inherit}
-.chip:hover{border-color:var(--gold);color:var(--gold)}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip.lesson{font-family:var(--serif);font-size:13.5px}
-.chip.lesson.on{background:var(--gold);border-color:var(--gold)}
-
-input[type=text]{width:100%;margin-top:11px;padding:11px 14px;font-size:13.5px;
-  border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);
-  font-family:inherit}
-input[type=text]:focus{outline:none;border-color:var(--gold)}
-.hint{margin-top:9px;font-size:11.5px;color:var(--mute)}
-
-/* ── 按钮 ── */
-.acts{display:flex;gap:10px;margin:clamp(18px,2.6vw,24px) 0;flex-wrap:wrap}
-.btn{flex:1;min-width:130px;padding:14px 20px;border-radius:11px;font-size:14.5px;
-  letter-spacing:.1em;cursor:pointer;border:none;font-family:inherit;transition:all .22s}
-.btn.pri{background:var(--ink);color:#fff}
-.btn.pri:hover{background:var(--gold)}
-.btn.sec{background:transparent;border:1px solid var(--line);color:var(--dim);flex:0 0 auto;min-width:96px}
-.btn.sec:hover{border-color:var(--gold);color:var(--gold)}
-
-/* ── 课文卡片 ── */
-#lesson{background:var(--paper);border:1px solid var(--line);border-radius:16px;
-  padding:clamp(24px,4.5vw,52px) clamp(18px,4vw,56px);
-  box-shadow:0 14px 44px rgba(30,33,40,.07);display:none}
-#lesson.show{display:block}
-.lessno{text-align:center;font-size:11px;letter-spacing:.34em;color:var(--mute);margin-bottom:22px}
-.title{text-align:center;font-family:var(--serif);font-size:clamp(24px,4.4vw,34px);
-  font-weight:700;letter-spacing:.18em}
-.author{text-align:center;margin-top:9px;font-size:13.5px;color:var(--dim);letter-spacing:.14em}
-.style-tag{text-align:center;margin-top:7px;font-size:11.5px;color:var(--gold);letter-spacing:.2em}
-.note{text-align:center;margin-top:5px;font-size:11.5px;color:var(--mute);letter-spacing:.1em}
-.rule{height:1px;background:var(--line);margin:clamp(20px,3.4vw,32px) 0}
-.body p{font-family:var(--serif);font-size:clamp(14.5px,2vw,16px);line-height:2.15;
-  text-indent:2em;margin-bottom:.9em;text-align:justify}
-.body p.open{text-indent:2em}   /* 首段不再特殊着色：红在有的课文里指原文、有的指改写，容易误解 */
-.body p.end{color:var(--dim);font-style:italic}
-.theend{margin-top:clamp(20px,3vw,30px);text-align:center;font-family:var(--serif);
-  font-size:12px;letter-spacing:.62em;color:var(--mute)}
-.foot{margin-top:clamp(22px,3.4vw,32px);padding-top:16px;border-top:1px solid var(--line);
-  font-size:11.5px;color:var(--mute);text-align:center;letter-spacing:.06em}
-.foot b{color:var(--dim);font-weight:500}
-
-/* ── 页脚 ── */
-footer{margin-top:clamp(30px,5vw,52px);text-align:center;font-size:12px;color:var(--mute);line-height:2.1}
-footer a{color:var(--gold)}
-.toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,20px);opacity:0;
-  background:var(--ink);color:#fff;font-size:13px;padding:11px 22px;border-radius:99px;
-  transition:all .3s;pointer-events:none}
-.toast.on{opacity:1;transform:translate(-50%,0)}
-@media(max-width:600px){
-  .btn{min-width:0}
-  .btn.sec{flex:1}
-}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f7f2e7">
+<meta name="description" content="麦门语文课：一份餐品清单，写成一篇原创文学戏仿。16 种文学风格，免费离线生成，还能导出高清课文图片。">
+<meta property="og:title" content="麦门语文课 · 今日这单，值得一篇课文">
+<meta property="og:description" content="点几样餐品，生成专属课文。离线可玩，接入麦当劳 MCP 可导入真实订单。">
+<title>麦门语文课 | 今日这单，值得一篇课文</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23b74135'/%3E%3Ctext x='50' y='70' text-anchor='middle' font-size='67'%3E📖%3C/text%3E%3C/svg%3E">
+<style>:root{--paper:#f7f2e7;--paper-bright:#fffdf7;--cream:#ece7da;--ink:#252622;--sub:#666761;--line:#dbd5c8;--red:#bc4636;--darkred:#9c3226;--gold:#edb44c;--sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;--serif:"Noto Serif CJK SC","Songti SC","STSong","SimSun",serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}button,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:none;color:inherit}button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #f1aa55;outline-offset:3px}::selection{background:#e7c79a}
+.topbar{max-width:1280px;margin:auto;padding:22px 44px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(42,43,35,.13)}.brand{display:flex;align-items:center;gap:11px;font-size:20px;font-weight:850;letter-spacing:.03em}.brand-icon{display:grid;place-items:center;width:43px;height:43px;border-radius:12px;background:var(--red);color:#fff;font-size:26px;font-family:var(--serif);box-shadow:inset -4px -4px rgba(40,0,0,.11)}.brand small{display:block;color:#a09b8b;font-size:9px;letter-spacing:.16em;margin-top:1px;font-weight:800}.topbar nav{display:flex;align-items:center;gap:31px;font-size:13px;font-weight:650}.topbar nav a:hover,.text-link:hover{color:var(--red)}.nav-github{border:1px solid #cfc8ba;border-radius:50px;padding:11px 17px}
+.hero{max-width:1280px;margin:auto;min-height:480px;padding:72px 70px 65px;display:grid;grid-template-columns:1.18fr .82fr;gap:20px;position:relative;overflow:hidden}.hero-copy{position:relative;z-index:1}.eyebrow{font-size:12px;font-weight:750;letter-spacing:.055em;color:var(--darkred);display:flex;align-items:center;gap:10px}.red-dot{background:var(--red);width:8px;height:8px;border-radius:100%;display:inline-block}.hero h1{font-family:var(--serif);font-weight:900;font-size:clamp(44px,5.2vw,74px);letter-spacing:-.05em;line-height:1.37;margin:30px 0 22px}.hero h1 em{color:var(--red);font-style:normal;background:linear-gradient(transparent 78%,#eac67b77 78%)}.hero-intro{color:#68645e;line-height:2;font-size:15px;margin:0 0 29px}.hero-actions{display:flex;align-items:center;gap:26px}.button{border:0;display:inline-flex;justify-content:center;align-items:center;gap:18px;padding:16px 25px;border-radius:13px;font-weight:800;font-size:14px;transition:transform .18s,background .18s,box-shadow .18s}.button:hover{transform:translateY(-2px)}.button-primary{background:var(--red);color:#fff;box-shadow:0 8px 18px #bc46362b}.button-primary:hover{background:var(--darkred)}.text-link{font-size:13px;font-weight:800;border-bottom:1px solid #8d8377;padding-bottom:5px}.hero-facts{margin-top:42px;display:flex;align-items:center;gap:15px;color:#868077;font-size:12px}.hero-facts b{font-size:18px;color:var(--ink)}.hero-facts i{height:15px;width:1px;background:#d6d0c3}.hero-art{position:relative;min-height:380px}.hero-art-circle{position:absolute;border-radius:100%;background:#eed9a3;opacity:.55}.circle-one{width:365px;height:365px;right:-60px;top:15px}.circle-two{width:260px;height:260px;right:140px;top:90px;background:#f4e0bf;opacity:.9}.floating-ticket{position:absolute;z-index:2;top:12px;left:25%;width:280px;height:346px;background:#fffdf9;box-shadow:13px 19px 0 #bd4835,0 25px 40px #36251a22;transform:rotate(-7deg);padding:27px 27px;border:1px solid #eadfce;display:flex;flex-direction:column}.floating-ticket>span{color:#969084;font-size:10px;font-weight:800;letter-spacing:.19em}.floating-ticket strong{font-size:59px;letter-spacing:-.045em;font-weight:900;margin:17px 0 9px}.ticket-dash{border-top:2px dashed #ded3c0;margin:9px 0 24px}.floating-ticket p{font-family:var(--serif);line-height:1.9;font-size:16px;font-weight:700}.barcode{margin-top:auto;font-size:27px;letter-spacing:3px;overflow:hidden;line-height:1;color:#333}.floating-note{position:absolute;right:-10px;bottom:3px;z-index:3;background:#f4bf64;padding:22px 34px;transform:rotate(8deg);font-family:var(--serif);font-size:19px;font-weight:900;line-height:1.6;box-shadow:4px 8px 20px #352b1a1c}.art-cross{position:absolute;left:17%;bottom:20px;color:var(--red);font-size:69px}
+.steps-section{background:var(--ink);color:#fff;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:30px max(32px,calc((100vw - 1100px)/2));gap:20px}.step{display:flex;flex-direction:column;gap:8px;padding:6px 18px;border-right:1px solid #545550}.step:last-child{border-right:0}.step-index{color:#f1b95a;font-size:11px;font-weight:900}.step strong{font-size:18px;font-family:var(--serif)}.step>span:last-child{font-size:12px;color:#c4c4bd;line-height:1.6}
+.studio-section{max-width:1190px;margin:0 auto;padding:100px 28px 90px}.section-heading{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:34px}.section-kicker{font-size:11px;color:var(--red);font-weight:850;letter-spacing:.22em;margin:0 0 12px}.section-heading h2,.about-section h2{font-family:var(--serif);font-size:clamp(27px,3.2vw,42px);letter-spacing:-.025em;line-height:1.4;margin:0}.section-mark{font-size:64px;color:var(--gold)}.workspace{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);align-items:start;gap:27px}.controls{display:flex;flex-direction:column;gap:20px}.control-card{background:var(--paper-bright);border:1px solid #e1dccf;border-radius:20px;padding:25px;box-shadow:0 10px 28px #413b2d08}.control-heading{display:flex;gap:14px;align-items:flex-start;margin-bottom:23px}.count-number{font-size:11px;color:var(--red);border-radius:8px;background:#f9e7e1;display:grid;place-items:center;min-width:30px;height:30px;font-weight:900}.control-heading h3{font-family:var(--serif);font-size:19px;margin:0 0 6px}.control-heading p{color:#8b8881;font-size:12px;margin:0}.food-chips{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:24px}.food-chip{border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 12px;font-size:12px;color:#5c5d57;transition:all .15s}.food-chip:hover{border-color:var(--red);color:var(--red)}.food-chip[aria-pressed=true]{color:var(--darkred);background:#fbeae5;border-color:#d99886;font-weight:800}.field-label{display:block;font-weight:750;font-size:12px;margin-bottom:9px}.control-card textarea{width:100%;resize:vertical;min-height:82px;max-height:180px;padding:12px 14px;color:var(--ink);border-radius:10px;background:#fbfaf6;border:1px solid #dcd7c9;line-height:1.65;font-size:13px}.field-help{font-size:11px;line-height:1.7;color:#918d83;margin:9px 0 16px}.import-area{display:flex;align-items:center;flex-wrap:wrap;gap:13px;border-top:1px dashed #e2dccc;padding-top:18px}.import-button{border:1px dashed #c8bca4;border-radius:10px;color:var(--darkred);background:#fbf4e6;padding:11px 13px;font-weight:800;font-size:12px}.import-button:hover{border-color:var(--red)}.import-button span{font-size:19px;margin-right:7px}.tiny-muted{color:#918d83;font-size:10px}.order-summary{margin-top:16px;font-size:12px;line-height:1.6;background:#f7f1e6;border-radius:9px;padding:12px 14px;color:#625a4b;overflow-wrap:anywhere}.lesson-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.lesson-chip{display:flex;align-items:center;gap:9px;text-align:left;min-height:50px;background:#fff;border:1px solid #e3ded3;border-radius:10px;padding:9px;color:var(--ink)}.lesson-chip .idx{font-size:10px;color:#b3ab9a;font-weight:800}.lesson-chip .name{font-size:12px;font-weight:780}.lesson-chip:hover{border-color:var(--red)}.lesson-chip[aria-pressed=true]{background:#bd4637;color:#fff;border-color:#bd4637}.lesson-chip[aria-pressed=true] .idx{color:#f2cabe}.controls-actions{display:flex;flex-wrap:wrap;gap:10px}.wide{flex:1}.button-subtle{color:var(--ink);background:#e9e3d6}.button-subtle:hover{background:#ded6c6}.error{margin:0;padding:13px;background:#fff0ec;color:#922a20;border-left:3px solid #bd4435;font-size:12px;border-radius:5px}
+.reader-wrap{position:sticky;top:18px}.reader-bar{background:#272724;color:#fff;border-radius:14px 14px 0 0;padding:14px 19px;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:650}.reader-bar>span{color:#aca99f;font-size:10px;letter-spacing:.15em}.reader-dot{width:7px;height:7px;border-radius:50%;background:#edb44c;display:inline-block;margin-right:7px}.reader{background:#fffcf5;border:1px solid #e2dac9;border-top:0;min-height:720px;padding:55px clamp(25px,4.5vw,63px) 36px;position:relative;box-shadow:0 20px 50px #39311f14}.reader:before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:repeating-linear-gradient(0deg,#e3cbb3 0 1px,transparent 1px 18px);opacity:.45}.reader-topline{display:flex;justify-content:space-between;gap:12px;color:#948778;font-size:10px;letter-spacing:.07em}.reader-mark{text-align:center;font-size:11px;font-weight:700;color:var(--red);letter-spacing:.34em;margin:48px 0 12px}.reader h2{text-align:center;font:900 clamp(29px,3.4vw,40px)/1.45 var(--serif);margin:0;letter-spacing:.03em}.reader-subtitle{text-align:center;font-size:12px;font-weight:700;color:#806d5d;margin:11px 0 5px}.reader-inspiration{text-align:center;font-size:10px;color:#aaa395;margin:0}.ornament{display:flex;align-items:center;gap:14px;color:#be735b;margin:32px 0 31px}.ornament:before,.ornament:after{content:"";height:1px;flex:1;background:#e3dac9}.reader-body p{font:400 15px/2.3 var(--serif);text-indent:2em;text-align:justify;margin:0 0 17px;color:#35312d;overflow-wrap:anywhere}.reader-end{text-align:center;color:#9a8371;font:12px var(--serif);letter-spacing:.32em;margin:30px 0 34px}.reader-footer{border-top:1px solid #ddd6c6;padding-top:15px;font-size:11px;color:#80786a;line-height:1.7;overflow-wrap:anywhere}.reader-footer small{display:block;color:#a9a192;margin-top:6px;font-size:10px}.reader-actions{display:flex;gap:12px;margin-top:14px}.reader-actions .button{flex:1}.button-dark{background:#282a26;color:#fff}.button-light{background:#e9e2d3;color:#34312b}.privacy-hint{font-size:11px;color:#8b867d;line-height:1.7;text-align:center;margin:13px 0 0}
+.about-section{background:#ebe3d4;padding:70px max(26px,calc((100vw - 1140px)/2));display:grid;grid-template-columns:1fr 1fr;gap:70px}.about-section h2{font-size:clamp(28px,3.4vw,43px)}.about-body p{font-size:14px;color:#5d5b55;line-height:2;margin:0 0 15px}.about-body a{display:inline-block;font-size:13px;font-weight:850;color:var(--darkred);border-bottom:1px solid currentColor;padding-bottom:6px;margin-top:10px}.site-footer{max-width:1210px;margin:auto;padding:30px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:11px;color:#8b847a}.footer-brand{font-weight:900;color:var(--ink);font-size:15px}.footer-brand small{display:block;letter-spacing:.12em;font-size:8px;color:#b1a999}.site-footer p{margin:0}.site-footer a{font-weight:850}.toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,18px);background:#242624;color:#fff;padding:13px 25px;border-radius:9px;font-size:12px;z-index:20;opacity:0;pointer-events:none;transition:all .2s;box-shadow:0 10px 28px #0003}.toast.show{transform:translate(-50%,0);opacity:1}
+@media(max-width:950px){.topbar{padding:19px 25px}.hero{padding:62px 30px;grid-template-columns:1.1fr .9fr}.floating-ticket{left:10%;width:250px}.floating-note{right:-10px}.workspace{grid-template-columns:1fr}.reader-wrap{position:static;max-width:800px;width:100%;margin:auto}.reader{min-height:500px}.steps-section{padding:26px 25px}.studio-section{padding:70px 22px}.about-section{padding:65px 35px}}
+@media(max-width:690px){.topbar{padding:14px 17px}.brand{font-size:17px}.brand-icon{width:37px;height:37px;font-size:21px}.topbar nav{gap:0}.topbar nav a:not(.nav-github){display:none}.nav-github{padding:9px 12px;font-size:11px}.hero{display:block;min-height:0;padding:54px 22px 45px}.hero h1{font-size:clamp(39px,9.2vw,57px);margin:24px 0}.hero-intro{font-size:13px}.desktop-only{display:none}.hero-actions{gap:19px}.hero-facts{margin-top:30px;font-size:10px;gap:10px}.hero-facts b{font-size:16px}.hero-art{display:none}.steps-section{display:block;padding:15px 25px}.step{display:grid;grid-template-columns:27px 1fr;gap:4px 10px;border-right:0;border-bottom:1px solid #484844;padding:12px 0}.step:last-child{border-bottom:0}.step-index{grid-row:span 2}.step strong{font-size:14px}.step>span:last-child{font-size:11px}.studio-section{padding:65px 15px}.section-heading{padding:0 4px}.section-mark{font-size:42px}.workspace{gap:20px}.control-card{padding:19px;border-radius:16px}.control-heading h3{font-size:17px}.lesson-grid{gap:7px}.lesson-chip{padding:9px 7px;gap:6px}.lesson-chip .name{font-size:11px}.food-chip{padding:9px 10px;font-size:11px}.reader{padding:38px 26px 25px}.reader-topline{font-size:9px}.reader h2{font-size:29px}.reader-body p{font-size:14.5px;line-height:2.05}.reader-actions .button{font-size:12px;padding:14px 8px;gap:5px}.reader-bar{font-size:10px}.about-section{grid-template-columns:1fr;padding:55px 25px;gap:20px}.site-footer{display:block;padding:28px 22px}.site-footer p{margin:12px 0}.controls-actions .button{font-size:12px;padding:15px 13px}.eyebrow{font-size:10px}}
 </style>
 </head>
 <body>
-<div class="wrap">
-
-  <header>
-    <h1>麦门语文课</h1>
-    <div class="tagline">选几样麦当劳，挑一篇课文，<b>看你的订单被改写成什么</b></div>
-  </header>
-
-  <div class="panel">
-    <div class="lbl">点 你 吃 了 什 么</div>
-    <div class="chips" id="foods"></div>
-    <input type="text" id="custom" placeholder="也可以直接打字，用逗号分隔：巨无霸, 中薯条, 可乐" autocomplete="off">
-    <div class="hint" id="picked">当前订单：巨无霸、中薯条、可乐</div>
-
-    <div class="lbl">挑 一 篇 课 文</div>
-    <div class="chips" id="lessons"></div>
+<header class="topbar">
+ <a class="brand" href="#top" aria-label="麦门语文课首页"><span class="brand-icon">麦</span><span>麦门语文课<small>THE LITERARY ORDER</small></span></a>
+ <nav aria-label="主导航"><a href="#studio">开始创作</a><a href="#about">关于项目</a><a class="nav-github" href="https://github.com/miaoyhcat/mcd-chinese-class" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></nav>
+</header>
+<main id="top">
+<section class="hero">
+ <div class="hero-copy">
+  <p class="eyebrow"><span class="red-dot"></span> 原创文学戏仿 · 2026 程序员创意开发大赛参赛项目</p>
+  <h1>今日这单，<br><em>值得一篇课文。</em></h1>
+  <p class="hero-intro">一份普通的餐品清单，写出一本正经的语文课本。<br class="desktop-only">不讲大道理，认真地开个文学玩笑。</p>
+  <div class="hero-actions"><a class="button button-primary" href="#studio">开始创作 <span aria-hidden="true">↗</span></a><a class="text-link" href="#how">了解怎么玩 <span aria-hidden="true">↓</span></a></div>
+  <div class="hero-facts"><span><b>16</b> 篇原创课文</span><i></i><span><b>0</b> 付费 API</span><i></i><span><b>100%</b> 本地生成</span></div>
+ </div>
+ <div class="hero-art" aria-hidden="true">
+  <div class="hero-art-circle circle-one"></div><div class="hero-art-circle circle-two"></div>
+  <div class="floating-ticket"><span>ORDER TICKET</span><strong>NO. 016</strong><div class="ticket-dash"></div><span>今日文学配方</span><p>巨无霸 × 温情 × 一点点荒诞</p><div class="barcode">||||| |||| |||||| | |||</div></div>
+  <div class="floating-note">读完这篇，<br>记得趁热吃。</div>
+  <span class="art-cross">✳</span>
+ </div>
+</section>
+<section id="how" class="steps-section" aria-label="三步生成">
+ <div class="step"><span class="step-index">01</span><strong>挑餐品</strong><span>点选或输入，也可导入 MCP 订单</span></div>
+ <div class="step"><span class="step-index">02</span><strong>选文风</strong><span>在十六篇文学小品中挑一篇</span></div>
+ <div class="step"><span class="step-index">03</span><strong>带走课文</strong><span>复制全文，或生成高清分享图片</span></div>
+</section>
+<section id="studio" class="studio-section">
+ <div class="section-heading"><div><p class="section-kicker">LITERARY STUDIO / 01</p><h2>你的麦门文学实验室</h2></div><span class="section-mark">✳</span></div>
+ <div class="workspace">
+  <div class="controls">
+   <div class="control-card">
+    <div class="control-heading"><span class="count-number">01</span><div><h3>先选今天吃什么</h3><p>点选常见餐品，或者自己写一份</p></div></div>
+    <div id="foodChips" class="food-chips" aria-label="餐品列表"></div>
+    <label for="customInput" class="field-label">手动输入餐品（可选）</label>
+    <textarea id="customInput" rows="2" maxlength="5000" placeholder="例如：巨无霸、中薯条、可乐（输入后优先使用这里的内容）"></textarea>
+    <p class="field-help">用逗号、顿号或换行分隔。填写时将覆盖上方点选；清空即可恢复点选。</p>
+    <div class="import-area"><input id="importFile" type="file" accept=".json,application/json" hidden><button id="importButton" class="import-button" type="button"><span aria-hidden="true">↥</span> 导入真实订单（脱敏 JSON）</button><span class="tiny-muted">需要本地 MCP 命令行生成</span></div>
+    <div id="orderSummary" class="order-summary" aria-live="polite"></div>
+   </div>
+   <div class="control-card">
+    <div class="control-heading"><span class="count-number">02</span><div><h3>选一篇文学小品</h3><p>保留文学神韵，写自己的故事</p></div></div>
+    <div id="lessonChips" class="lesson-grid" role="group" aria-label="课文风格选择"></div>
+    <p class="field-help">文章是原创戏仿，并非原著复制；不同作品有不同情节。</p>
+   </div>
+   <div class="controls-actions"><button id="generateButton" type="button" class="button button-primary wide">生成我的课文 <span aria-hidden="true">✦</span></button><button id="surpriseButton" type="button" class="button button-subtle">换篇课文 ↻</button></div>
+   <p id="error" class="error" role="alert" hidden></p>
   </div>
-
-  <div class="acts">
-    <button class="btn pri" id="go">生 成 课 文</button>
-    <button class="btn sec" id="again">换一篇</button>
-    <button class="btn sec" id="copy">复制</button>
-    <button class="btn sec" id="img">生成课文图片</button>
+  <div class="reader-wrap">
+   <div class="reader-bar"><div><span class="reader-dot"></span> 我的语文课本</div><span>LIVE PREVIEW</span></div>
+   <article id="reader" class="reader" aria-live="polite" aria-label="生成课文">
+    <div class="reader-topline"><span id="lessonNumber">第 001 课</span><span>麦门语文 · 手作文学</span></div>
+    <p class="reader-mark">课 / 文 / 精 / 选</p>
+    <h2 id="lessonTitle">等待生成</h2>
+    <p id="lessonGenre" class="reader-subtitle"></p>
+    <p id="lessonInspiration" class="reader-inspiration"></p>
+    <div class="ornament"><span>✳</span></div>
+    <div id="lessonBody" class="reader-body"></div>
+    <p class="reader-end">— 课 文 完 —</p>
+    <div class="reader-footer"><span id="lessonItems"></span><small>原创文学戏仿 · 非官方产品</small></div>
+   </article>
+   <div class="reader-actions"><button id="copyButton" type="button" class="button button-dark">复制全文 <span aria-hidden="true">↗</span></button><button id="imageButton" type="button" class="button button-light">保存课文图片 ↓</button></div>
+   <p class="privacy-hint"><span aria-hidden="true">♧</span> 图片与文字在本机生成。不会附带订单号、位置或付款信息。</p>
   </div>
+ </div>
+</section>
+<section id="about" class="about-section">
+ <div><p class="section-kicker">MORE THAN A JOKE</p><h2>写给有点饿，<br>又有点喜欢文字的人。</h2></div>
+ <div class="about-body"><p>我们把点餐后的几分钟，变成一场小小的文学实验。每篇故事重新写作，餐品根据你的选择填入；不用登录、没有广告，也不调用付费大模型。</p><p>本项目另提供真实的麦当劳 MCP 只读接入：在自己的电脑运行命令行，读取最近有效订单，再导出只有餐品名称与数量的 JSON，交给网页继续创作。浏览器不会接收你的 Token。</p><a href="https://github.com/miaoyhcat/mcd-chinese-class" target="_blank" rel="noopener noreferrer">查看源代码与使用方法 ↗</a></div>
+</section>
+</main>
+<footer class="site-footer"><span class="footer-brand">麦门语文课 <small>MADE FOR WORDS & FOOD</small></span><p>独立开发 · 非麦当劳官方产品 · 所有作品为原创文学戏仿</p><a href="https://github.com/miaoyhcat/mcd-chinese-class/issues" target="_blank" rel="noopener noreferrer">反馈问题 ↗</a></footer>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script></script>
+<script>'use strict';
+// 配合 build_web.py 嵌入 docs/index.html；除外链的点击跳转外，不向任何服务器请求数据。
+const LESSONS = [{"id":"beiying","title":"取餐的背影","genre":"记事 · 温情","inspired_by":"朱自清《背影》","opening":"小时候以为陪伴是件热闹的事，后来才知道，它有时只是有人记得你爱吃{main}。","body":["那天傍晚，我和父亲坐在靠窗的座位。他照旧问我还要不要添点什么，我答不用；可他看了看桌上的餐盘，还是起身往取餐台走去。外头的车灯从玻璃上滑过，照得他的外套一亮一暗。","取餐号响了好几声，他才找到自己的那一份。他一手拎着{items}，一手护着杯盖，走得很慢，遇见急着赶路的人就微微侧身。明明不算远的几步路，我却突然觉得应该站起来迎一迎。","他把东西放下，先把热的推给我，又把纸巾摆到我手边，低头检查袋子里还有没有漏掉的酱包。我说：“你也吃。”他说：“我不急，先趁热。”这样的对话没有什么惊天动地，却总在我长大后反复想起。"],"ending":"如今每次听见取餐提示音，我都会望向柜台。人来人往之间，总像有一个熟悉的背影，正替我带回晚饭。"},{"id":"kongyiji","title":"孔乙己的取餐码","genre":"人物 · 幽默","inspired_by":"鲁迅《孔乙己》","opening":"小店里的人都知道，有位客人特别在意取餐码的写法。","body":["别人拿到小票，通常看一眼数字便收进口袋；他却把小票铺平，认真指出这串数字在排版上颇有讲究，连旁边等待{side}的孩子也被说得一愣一愣。","他一面解释，一面端详{main}，仿佛在给一道作文题寻找合适的开头。有人问他为什么迟迟不吃，他说：“好文章须有起承转合，好晚餐亦然。”说完又把{drink}挪到左边，觉得构图更妥。","等到食物快凉了，他终于咬下第一口，神情突然安静。店员问要不要纸巾，他点点头，轻声说：“这一个字，倒可以省。”大家没听懂，却看见他吃得很认真。"],"ending":"后来那张小票不见了，没人记得编号是多少；人们只记得，那个讲究字形的人，终于肯趁热吃饭。"},{"id":"baicaoyuan","title":"从菜单墙到靠窗座","genre":"童趣 · 观察","inspired_by":"鲁迅《从百草园到三味书屋》","opening":"那家店的菜单墙，对小时候的我来说，比一本百科全书还热闹。","body":["屏幕上的图会轮流亮起，一会儿是金黄的{side}，一会儿是整齐排好的{main}。我常在下面仰着头，努力记住每样东西的位置，以为只要记熟，就拥有了全世界的秘密。","真正坐下以后，靠窗的位置又是一门新学问。玻璃上的雨痕沿着不同道路流下来，纸袋能折成小船，杯盖的圆孔像一个微型望远镜。朋友笑我心思多，我却觉得吃饭本来就该兼顾实验与想象。","多年以后，我知道了价目表是如何变化的，也明白了点单不是一场探险；可每回经过那扇玻璃门，仍忍不住想起那个不愿意立刻回家的下午。"],"ending":"有些乐趣不必解释，它只需要一张小桌、一份{items}，以及暂时没有人催促的时间。"},{"id":"guxiang","title":"故乡的那盏餐厅灯","genre":"回忆 · 抒情","inspired_by":"鲁迅《故乡》","opening":"离开故乡以后，我很久没有想起那家路口的小店。","body":["直到某个下雨的夜晚，我在另一座城市点了{items}，突然闻到一股似曾相识的香气。那气味并不神奇，却把旧日的小巷、黄昏的自行车铃声和放学后的争论一股脑儿带回眼前。","我记起朋友总爱抢最后一根{side}，而我嘴上说着不在意，手却把纸盒护得紧紧的。我们曾约定将来赚了钱要点满一整张桌子，结果长大后才发现，两个人能同时有空，已经算得上稀罕。","那天我拍下餐盘发给他。他隔了好久才回复一行字：“还是老样子啊。”屏幕亮了一会儿又暗下去，我把手机放到一旁，认真吃完了那顿饭。"],"ending":"故乡未必总在地图上，有时也在你记得怎样和一个人分着吃{main}的地方。"},{"id":"yueyanglou","title":"登楼观餐记","genre":"古风 · 想象","inspired_by":"范仲淹《岳阳楼记》","opening":"某日登商场高楼，见人流如织，灯火满窗，忽生记食之意。","body":["楼下行人各有所趋，楼上食客各有所喜。或独取{main}，坐看车马；或与三五好友同分{side}，笑声越过桌沿。窗外风雨无常，窗内温度恰好，此间热闹，竟不逊节日。","若问此楼何景最宜久看？不在远山，不在霓虹，而在取餐台旁互相让路的一瞬；一人托起将倒的饮料，另一人顺手扶住纸袋，小事虽微，足以令人心安。","及至{drink}入口，忽觉赶路之事不必尽在今日完成。世间大计划固然要紧，眼前一餐亦当仔细。倘连趁热用饭也忘了，何谈从容？"],"ending":"是日记曰：登楼所见，无非人间烟火；今日所念，不过{items}。"},{"id":"hetang","title":"月光落在餐盘上","genre":"散文 · 夜色","inspired_by":"朱自清《荷塘月色》","opening":"夜里十一点，城市终于把音量调低了些，我带着{items}坐到窗边。","body":["玻璃倒映着室内的暖灯，像在黑色天空里又开出一间小店。窗外有出租车驶过，尾灯轻轻拖出两道红线；窗内的{side}还冒着一点热气，空气里有安静的香味。","我不急着看手机，只把纸盒打开，慢慢挑了一根尝。忙了一整天的事情仍在脑子里排队，可它们此刻都不必插队。楼下有人拎着包快步走过，我猜他也盼着回家后能吃点喜欢的东西。","桌上那杯{drink}被灯光照出浅浅的边缘，旁边的{main}安稳地躺着。原来深夜并不全是疲惫，偶尔也肯让人把一天收进一个小小的纸袋。"],"ending":"吃完时月亮已不在窗框里。我熄了灯，觉得这个夜晚终于有了一个妥帖的句号。"},{"id":"shexi","title":"夜场散席以后","genre":"群像 · 友谊","inspired_by":"鲁迅《社戏》","opening":"看完一场很晚的演出，所有人都喊着不饿，脚步却不约而同地朝同一家店走。","body":["刚才在剧场里还一本正经讨论表演的人，坐下来便立刻研究{items}应该怎样分。有人坚持{side}必须趁热，有人说{drink}应该留到最后，还有人忙着把纸巾分到每个座位。","我们说起演出里最喜欢的片段，意见相差十万八千里，谁也没能说服谁。可轮到最后一口{main}时，大家又十分默契地把它让给那位一路跑去取餐的人。","回家的路上，地铁快停运了，话题却仍然没有结束。第二天有人问我演出究竟精彩在哪里，我想了想，脑海里首先出现的反倒是那张摆满纸盒的桌子。"],"ending":"热闹的事情总有散场的时候，好在朋友和晚饭，往往能替它留下一个温暖的尾音。"},{"id":"aq","title":"阿Q的点餐哲学","genre":"小品 · 自嘲","inspired_by":"鲁迅《阿Q正传》","opening":"阿Q这天给自己定了一个规矩：点餐要快，绝不能犹豫。","body":["他站在菜单前，先说{main}自然是最好的选择，又觉得{side}似乎也有不可替代的优点。排在后面的人已经点完，他仍然在心里给不同组合排出名次，仿佛这是一场需要颁奖的比赛。","轮到付款时，他忽然决定：“我当然不是犹豫，我这是综合评估。”店员点点头，把{items}打在小票上。阿Q拿着票坐下，觉得今日最大的胜利，就是终于做出了决定。","食物送到，他尝了第一口，立刻宣布自己的选择果然高明。旁人问他若换一份会怎样，他摆摆手：“那也是一种高明，不过今日轮不到它。”"],"ending":"人有时总想把小事说成大道理，好在晚饭通常不参加辩论。"},{"id":"fanjin","title":"范进中了取餐号","genre":"喜剧 · 荒诞","inspired_by":"吴敬梓《儒林外史》中的范进故事","opening":"取餐屏幕忽然亮起一个号码，范进激动得像是等到了一封远道而来的好消息。","body":["他先揉揉眼睛，又仔细核对小票，生怕自己看错。旁边朋友催他去拿{main}，他却连声说“不忙不忙”，仿佛这一刻必须先酝酿几句像样的感言。","好容易走到柜台，纸袋已经放好，{side}也整整齐齐地站在里面。店员笑着提醒他拿好{drink}，范进这才回过神，慌忙伸手，却又怕碰翻杯盖。","回到座位，朋友问他高兴什么，他郑重答道：“不是号码多了不起，是我终于不用再盯着屏幕了。”众人听罢大笑，范进也跟着笑，随后老老实实吃了起来。"],"ending":"世上值得庆祝的事有很多，能在肚子饿的时候准时拿到晚餐，偶尔也算一件。"},{"id":"taohuayuan","title":"误入取餐桃源","genre":"古风 · 奇遇","inspired_by":"陶渊明《桃花源记》","opening":"城市有一条不太起眼的小路，路尽头总亮着一盏温和的灯。","body":["某个雨日，我顺路进去躲雨，见座位不多，却人人从容。有人临窗读书，有人低声交谈，柜台上正摆着热腾腾的{main}。我点了{items}，听雨声渐渐落在屋檐上。","邻桌的小朋友把{side}分给母亲，母亲又替他擦去手上的盐粒。几个人互不相识，却都自然地挪了椅子，好让推婴儿车的客人经过。我望着这一切，忽觉日常的善意有时比奇景更难得。","雨停以后，我走回街上，车流依旧繁忙。回头再看，那盏灯不过是寻常的店招，可我知道自己记住的并不是招牌。"],"ending":"后来每逢赶路，我都愿意绕一点远去那里坐坐；所谓桃源，大概也有很平常的模样。"},{"id":"loushiming","title":"陋桌铭","genre":"短章 · 风趣","inspired_by":"刘禹锡《陋室铭》","opening":"桌不在阔，能放下餐便好；座不在高，坐得舒服便成。","body":["左有{main}，右有{drink}；纸巾归纸巾，酱包归酱包。窗外熙攘，室内从容。","不必名厨列席，也无须华灯千盏。三两好友谈今日，一盒{side}解疲惫。若问何处最妙，答曰：不赶时间。","食之有味，谈之有趣；纵是一方小桌，也能安放一段有滋有味的午后。"],"ending":"铭曰：今日{items}，恰好。"},{"id":"ailianshuo","title":"爱薯说","genre":"议论 · 趣谈","inspired_by":"周敦颐《爱莲说》","opening":"世人各有所爱，我偏爱那盒刚出炉的{side}。","body":["它没有惊人的排场，纸盒立在桌上，却能让忙碌的朋友不约而同伸出手来。有人喜欢蘸一点酱，有人坚持原味最好，也有人先把{main}吃完，才慢慢尝最后一根。","我倒觉得吃法并无高下。喜欢{drink}的人自有道理，偏爱主食的人也不必辩解。好的分享不是要求别人同意，而是看见对方喜欢什么，便愿意给他留下一份。","只是说归说，若有人趁我不注意拿走最后一根，我仍会认真地向他提出温和抗议。毕竟道理很宽容，胃口却很诚实。"],"ending":"爱物而不争，固然可贵；能把最后一根让出去，才是真有修养。"},{"id":"chushibiao","title":"今日出餐表","genre":"书信 · 诙谐","inspired_by":"诸葛亮《出师表》","opening":"致今日忙碌的自己：既已辛苦半日，晚餐之事，宜早作安排。","body":["出门在外，最怕只顾赶路而误了饭点。今有{items}可供选择，既无需长篇议论，也不必反复踌躇，惟愿坐定之后能安安稳稳吃上几口。","若同伴尚未抵达，则代为留座；若有人忘拿纸巾，则顺手取来。凡此琐事，虽不必载入史册，却是同行之人相处的道理。至于{drink}的冰量与{side}的分法，悉听各人心意。","我愿此餐过后，精神稍振，余事从容处置。若仍困倦，当许自己早点归家，不可用空腹之勇气硬撑。"],"ending":"谨以此表，提醒明日的自己：工作要认真，吃饭也要认真。"},{"id":"chun","title":"春天的第一口","genre":"散文 · 明朗","inspired_by":"朱自清《春》","opening":"春天到来时，城里的风最先改变了味道。","body":["街角的树冒出新芽，午后的太阳斜斜照着人行道。我提着{items}从店里出来，忽然发现今天不必把外套领子扣到最上面，便在路边的长椅上坐了一会儿。","纸袋发出细碎的声音，{main}仍然温热，{drink}的杯壁映着明亮的天光。有人牵着狗慢慢经过，有人在电话里约周末的行程，连等红灯的人都显得比冬天悠闲。","我咬下一口，想起前些日子还在抱怨天黑得太早，如今却舍不得马上回屋。每个季节都有自己的耐心，而春天总愿意多给人一点。"],"ending":"原来新的开始不一定需要隆重宣告，一阵暖风、一份喜欢的晚餐，也能算数。"},{"id":"bianselong","title":"最后一根薯条的立场","genre":"对话 · 喜剧","inspired_by":"契诃夫《变色龙》","opening":"关于桌上最后一根{side}究竟归谁，朋友们展开了一场严肃而短暂的讨论。","body":["甲说应该给最先点餐的人，乙立即附和；可当听说甲已经吃过两份，乙又转而认为，应当照顾仍然饥饿的人。丙还没有表态，只把{drink}往旁边挪了挪，以防讨论太热烈。","这时有人指出，最后一根其实属于大家共同购买的{items}。甲便夸赞集体精神，乙马上补充应按贡献分配，丙终于开口：“不如一人咬一小口？”大家齐声说不妥。","正争论着，服务员把落在柜台上的另一份{side}送了过来。所有原则顿时变得温柔，众人重新坐好，仿佛刚才从未有过分歧。"],"ending":"意见会随情势改变，唯有饭菜趁热，始终是无人反对的道理。"},{"id":"hezhou","title":"微型餐盘观察记","genre":"说明 · 奇趣","inspired_by":"魏学洢《核舟记》","opening":"今有一餐，物件虽小，排布之精细，足以记之。","body":["其左置{main}，层次分明；其右列{side}，形色可辨。中央留纸巾一叠，旁设{drink}一杯。若从高处俯视，几乎像一座安排周密的小城。","其中餐盒有折线，杯盖有圆孔，封口纸上印着细字。诸物各司其职，既便于携带，也方便一人独享或与友人分享。最值得称道者，倒不是形制，而是那些随手摆下的小小秩序。","观察既毕，旁人问我何不动筷。我说正待作最后记录；他笑着拆开纸袋，只道：“再观察下去，热气可要散了。”"],"ending":"遂合上笔记，认真吃饭。可见器物之妙，终究要落回人间的好胃口。"}];
+const CATALOG = {"exact":{"main":["巨无霸","麦香鱼","板烧鸡腿堡","麦辣鸡腿堡","双层吉士汉堡","原味板烧鸡腿堡","猪柳蛋麦满分","吉士汉堡","麦香鸡"],"side":["中薯条","大薯条","小薯条","麦乐鸡","麦乐鸡块","苹果派","香芋派","水果派","抹茶派","薯饼","玉米杯","麦旋风","新地"],"drink":["可乐","雪碧","芬达","拿铁","美式咖啡","橙汁","热牛奶","矿泉水","柠檬茶","纯净水","冰水"]},"markers":{"main":["汉堡","鸡腿堡","芝士堡","饭","粥","麦满分","卷","套餐","巨无霸","麦香鱼"],"side":["薯条","鸡块","麦乐鸡","鸡翅","薯饼","玉米","派","沙拉","冰淇淋","麦旋风","新地","蛋挞"],"drink":["可乐","雪碧","芬达","咖啡","拿铁","奶茶","果汁","橙汁","豆浆","牛奶","美式","气泡水"]},"quick_picks":["巨无霸","麦辣鸡腿堡","板烧鸡腿堡","麦香鱼","中薯条","大薯条","麦乐鸡","苹果派","麦旋风","可乐","雪碧","拿铁","橙汁","矿泉水"]};
+const $ = id => document.getElementById(id);
+const MAX_ITEMS = 40;
+const picked = new Set(['巨无霸','中薯条','可乐']);
+let selectedId = LESSONS[0].id;
+let lastDoc = null;
+let imageQueue = [];
+let imageIndex = 0;
+let toastTimer = null;
 
-  <article id="lesson"></article>
-
-  <footer>
-    麦门语文课 · 麦当劳程序员节创意开发大赛参赛作品<br>
-    非麦当劳官方产品 · 课文均为戏仿，与原作无关<br>
-    <a href="https://github.com/miaoyhcat/mcd-chinese-class">GitHub 仓库</a>
-  </footer>
-
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-/* 课文模板由 lessons.json 生成，构建时内联进来（见 build_web.py） */
-const LESSONS = [{"id": "beiying", "title": "背影", "author": "朱自清", "tag": "写人记事 · 深情", "opening": "我与那{main}不相见已二年余了，我最不能忘记的是它的背影。", "body": ["那年秋天，祖母死了，父亲的差使也交卸了，正是祸不单行的日子。我从北京到了徐州，打算跟着父亲奔丧回家。到南京时，父亲因为事忙，本已说定不送我，叫旅馆里一个熟识的茶房陪我同去。他再三嘱咐茶房，甚是仔细。但他终于不放心，怕茶房不妥帖；颇踌躇了一会。其实我那年已二十岁，北京已来往过两三次，是没有什么要紧的了。他踌躇了一会，终于决定还是自己送我去。", "我说道：“爸爸，你走吧。”他望车外看了看，说：“我买几个{main}去。你就在此地，不要走动。”", "我看见他戴着黑布小帽，穿着黑布大马褂，深青布棉袍，蹒跚地走到柜台边，慢慢探身下去，尚不大难。可是他穿过点餐的人群，要爬上那边月台，就不容易了。他用两手攀着上面，两脚再向上缩；他手里那袋{side}晃来晃去的样子，显出努力的样子。这时我看见他的背影，我的泪很快地流下来了。", "我赶紧拭干了泪。怕他看见，也怕别人看见。我再向外看时，他已抱了{main}往回走了。到这边时，我赶紧去搀他。他和我走到车上，将{main}一股脑儿放在我的皮大衣上。于是扑扑衣上的泥土，心里很轻松似的。", "过一会说：“我走了，到那边来信！”我望着他走出去。他走了几步，回过头看见我，说：“进去吧，里边没人。”等他的背影混入来来往往的人里，再找不着了，我便进来坐下，我的眼泪又来了。"], "ending": "我读到此处，在晶莹的泪光中，又看见那个热气腾腾的、{main}的背影。唉！我不知何时再能与他相见！"}, {"id": "kongyiji", "title": "孔乙己", "author": "鲁迅", "tag": "小说 · 冷峻", "opening": "鲁镇的麦当劳的格局，是和别处不同的：都是当街一个曲尺形的大柜台，柜里面预备着热水，可以随时温{drink}。", "body": ["点餐的人，傍午傍晚散了工，每每花二十七块钱，买一个{main}——这是二十多年前的事，现在每个要涨到三十块——靠柜外站着，热热地吃了休息。", "我从十二岁起，便在镇口的麦当劳里当伙计。掌柜说，样子太傻，怕侍候不了主顾，就在柜台里做点事了。", "孔乙己是站着吃{main}而穿长衫的唯一的人。他身材很高大；青白脸色，皱纹间时常夹些伤痕；一部乱蓬蓬的花白的胡子。穿的虽然是长衫，可是又脏又破，似乎十多年没有补，也没有洗。", "孔乙己一到店，所有点餐的人便都看着他笑，有的叫道，“孔乙己，你脸上又添上新伤疤了！”他不回答，对柜里说，“要一个{main}，{items}。”便排出三十块钱。", "他们又故意的高声嚷道，“你一定又偷了人家的东西了！”孔乙己睁大眼睛说，“你怎么这样凭空污人清白……”", "“什么清白？我前天亲眼见你偷了隔壁的{side}，吊着打。”", "孔乙己便涨红了脸，额上的青筋条条绽出，争辩道，“窃{side}不能算偷……窃{side}！……读书人的事，能算偷么？”接连便是难懂的话，什么“君子固穷”，什么“者乎”之类，引得众人都哄笑起来：店内外充满了快活的空气。"], "ending": "我到现在终于没有见——大约孔乙己的确已经戒了。"}, {"id": "baicaoyuan", "title": "从百草园到三味书屋", "author": "鲁迅", "tag": "散文 · 童趣", "opening": "我家的后面有一个很大的园，相传叫作百草园。", "body": ["不必说金黄的{side}，松软的{main}，冰镇的{drink}，酥脆的鸡块；也不必说骑手在檐下长鸣，胖乎乎的食客伏在柜台旁，轻捷的叫天子忽然从草间直窜向云霄里去了。单是周围的短短的泥墙根一带，就有无限趣味。", "我于是常常在柜台边徘徊，翻开断砖来，有时会遇见蜈蚣；还有斑蝥，倘若用手指按住它的脊梁，便会啪的一声，从后窍喷出一阵烟雾。", "出门向东，不上半里，走过一道石桥，便是三味书屋了。从一扇黑油的竹门进去，第三间是书房。中间挂着一块扁道：三味书屋。", "先生读书入神的时候，于我们是很相宜的。有几个便用纸糊的盔甲套在指甲上做戏。我是画画儿，用一种叫作“荆川纸”的，蒙在小说的绣像上一个个描下来，像习字时候的影写一样。读的书多起来，画的画也多起来；书没有读成，画的成绩却不少了，最成片段的是《{main}》的绣像，都有一大本。"], "ending": "后来，因为要钱用，卖给一个有钱的同窗了。他的父亲是开锡箔店的；听说现在自己已经做了店主，而且快要升到绅士的地位了。这东西早已没有了罢。"}, {"id": "guxiang", "title": "故乡", "author": "鲁迅", "tag": "小说 · 沉郁", "opening": "我冒了严寒，回到相隔二千余里、别了二十余年的故乡去。", "body": ["我冒了严寒，回到相隔二十分钟、别了三天的{store}去。", "时候既然是深冬；渐近故乡时，天气又阴晦了，冷风吹进船舱中，呜呜的响，从篷隙向外一望，苍黄的天底下，远近横着几个萧索的荒村，没有一些活气。我的心禁不住悲凉起来了。", "阿！这不是我二十年来时时记得的{store}？", "我所记得的{store}全不如此。我的{store}好得多了。但要我记起他的美丽，说出他的佳处来，却又没有影像，没有言辞了。仿佛也就如此。", "第二日清早晨我到了我家的门口了。瓦楞上许多枯草的断茎当风抖着，正在说明这老屋难免易主的原因。几房的本家大约已经搬走了，所以很寂静。", "这时候，我的脑里忽然闪出一幅神异的图画来：深蓝的天空中挂着一轮金黄的圆月，下面是海边的沙地，都种着一望无际的碧绿的{side}。其间有一个十一二岁的少年，项带银圈，手捏一柄钢叉，向一匹猹尽力的刺去，那猹却将身一扭，反从他的胯下逃走了。", "这少年便是闰土。"], "ending": "我想：希望是本无所谓有，无所谓无的。这正如地上的{side}；其实地上本没有{side}，点的人多了，也便成了{side}。"}, {"id": "yueyanglou", "title": "岳阳楼记", "author": "范仲淹", "tag": "文言 · 议论", "opening": "庆历四年春，滕子京谪守巴陵郡。越明年，政通人和，百废具兴。", "body": ["二零二六年秋，予谪守工位。越明年，需求不断，加班不休，乃重修点餐之术，刻唐贤今人诗赋于其上。属予作文以记之。", "予观夫麦门胜状，在一个“薯”字。衔山吞江，浩浩汤汤，横无际涯；朝晖夕阴，气象万千。此则{store}之大观也，前人之述备矣。", "然则北通{drink}，南极{main}，迁客骚人，多会于此，览物之情，得无异乎？", "若夫淫雨霏霏，连月不开，阴风怒号，浊浪排空；日星隐曜，山岳潜形；商旅不行，樯倾楫摧；薄暮冥冥，虎啸猿啼。登斯楼也，则有去国怀乡，忧谗畏讥，满目萧然，感极而悲者矣。", "至若春和景明，波澜不惊，上下天光，一碧万顷；沙鸥翔集，锦鳞游泳；岸芷汀兰，郁郁青青。而或长烟一空，皓月千里，浮光跃金，静影沉璧，渔歌互答，此乐何极！登斯楼也，则有心旷神怡，宠辱偕忘，把{drink}临风，其喜洋洋者矣。", "嗟夫！予尝求古仁人之心，或异二者之为，何哉？不以物喜，不以己悲；居庙堂之高则忧其民；处江湖之远则忧其君。是进亦忧，退亦忧。然则何时而乐耶？其必曰“先餐之饱而饱，后餐之饿而饿”乎。噫！微斯人，吾谁与归？"], "ending": "时二零二六年十月，记于工位。"}, {"id": "hetang", "title": "荷塘月色", "author": "朱自清", "tag": "散文 · 抒情", "opening": "这几天心里颇不宁静。", "body": ["今晚在工位上坐着乘凉，忽然想起日日走过的{store}，在这满月的光里，总该另有一番样子吧。", "月亮渐渐地升高了，窗外马路上孩子们的欢笑，已经听不见了；妻在屋里拍着闰儿，迷迷糊糊地哼着眠歌。我悄悄地披了大衫，带上门出去。", "沿着{store}，是一条曲折的小煤屑路。这是一条幽僻的路；白天也少人走，夜晚更加寂寞。", "路上只我一个人，背着手踱着。这一片天地好像是我的；我也像超出了平常的自己，到了另一世界里。我爱热闹，也爱冷静；爱群居，也爱独处。像今晚上，一个人在这苍茫的月下，什么都可以想，什么都可以不想，便觉是个自由的人。", "于是想起{main}来了。曲曲折折的餐盘上面，弥望的是田田的{side}。{side}出水很高，像亭亭的舞女的裙。层层的{side}中间，零星地点缀着些白花，有袅娜地开着的，有羞涩地打着朵儿的；正如一粒粒的明珠，又如碧天里的星星，又如刚出浴的美人。", "月光如流水一般，静静地泻在这一片{side}上。薄薄的青雾浮起在餐盘里。{side}仿佛在牛乳中洗过一样；又像笼着轻纱的梦。", "这时候{side}与{main}也有一丝的颤动，像闪电般，霎时传过餐盘的那边去了。{side}本是肩并肩密密地挨着，这便宛然有了一道凝碧的波痕。"], "ending": "这样想着，猛一抬头，不觉已是自己的门前；轻轻地推门进去，什么声息也没有，妻已睡熟好久了。（桌上那盒{main}，也凉了好久了。）"}, {"id": "shexi", "title": "社戏", "author": "鲁迅", "tag": "小说 · 怀旧", "opening": "我们鲁镇的习惯，本来是凡有出嫁的女儿，倘自己还未当家，夏间便大抵回到母家去消夏。", "body": ["就在我十一二岁时候的这一年，这日期也看看等到了。不料这一年真可惜，在早上就叫不到船。平桥村只有一只早出晚归的航船是大船，决没有留用的道理。其余的都是小船，不合用；央人到邻村去问，也没有，早都给别人定下了。", "和我一同玩的是许多小朋友，因为有了远客，他们也都从父母那里得了减少工作的许可，伴我来游戏。我们年纪都相仿，但论起行辈来，却至少是叔子，有几个还是太公。", "我的朋友说：“我们的大船不是回来了么？”", "于是架起两支橹，一支两人，一里一换，有说笑的，有嚷的，夹着潺潺的船头激水的声音，在左右都是碧绿的豆麦田地的河流中，飞一般径向{store}前进了。", "一出门，便望见{store}的灯火，仿佛一座仙山楼阁，满被红霞罩着了。", "最惹眼的是屹立在庄外临河的空地上的一座戏台，仿佛在画中一般。但那铁头老生却又并不翻筋斗，只有几个赤膊的人翻，翻了一阵，都进去了，接着走出一个小旦来，咿咿呀呀的唱。", "我有些疲倦了，托桂生买豆浆去。他去了一刻，回来说，“没有。卖豆浆的聋子也回去了。日里倒有，我还喝了两碗呢。现在去舀一瓢水来给你罢。”"], "ending": "真的，一直到现在，我实在再没有吃到那夜似的{side}，——也不再看到那夜似的好戏了。"}, {"id": "aq", "title": "阿Q正传", "author": "鲁迅", "tag": "小说 · 讽刺", "opening": "我要给阿Q做正传，已经不止一两年了。", "body": ["阿Q没有家，住在未庄的土谷祠里；也没有固定的职业，只给人家做短工，割麦便割麦，舂米便舂米，撑船便撑船。", "未庄的人又叫阿Q作“赛{main}”，因为他的脸上有几处不知起于何时的癫疮疤。他讳说“癞”以及一切近于“赖”的音，后来推而广之，“光”也讳，“亮”也讳，再后来，连“灯”“烛”都讳了。", "阿Q在形式上打败了，被人揪住黄辫子，在壁上碰了四五个响头，闲人这才心满意足的得胜的走了，阿Q站了一刻，心里想，“我总算被儿子打了，现在的世界真不像样……”于是也心满意足的得胜的走了。", "他要在{store}里买一个{main}。柜员说，要三十块。阿Q先前阔，见识高，而且真能做，本来几乎是一个“完人”了，他想了想，愤愤的吐一口唾沫：“我们先前——比你阔的多啦！你算是什么东西！”", "他付了钱，心里想：三十块一个{main}，在未庄是算便宜的；何况这{main}，是给儿子吃的。", "然而他又想：儿子吃了{main}，便是做老子的有面子。于是他心满意足的得胜的走了。"], "ending": "阿Q于是心满意足的得胜的走了。他觉得他是第一个能够自轻自贱的人，除了“自轻自贱”不算外，余下的就是“第一个”。状元不也是“第一个”么？“你算是什么东西”呢！"}, {"id": "fanjin", "title": "范进中举", "author": "吴敬梓", "tag": "小说 · 讽刺", "opening": "范进进学回家，母亲、妻子俱各欢喜。", "body": ["范进进学回家，母亲、妻子俱各欢喜。正待烧锅做饭，只见他丈人胡屠户，手里拿着一副大肠和一瓶酒，走了进来。", "胡屠户道：“我自倒运，把个女儿嫁与你这现世宝，历年以来，不知累了我多少。如今不知因我积了甚么德，带挈你中了个相公，我所以带个酒来贺你。”", "范进唯唯连声，叫浑家把肠子煮了，烫起酒来，在茅草棚下坐着。", "到出榜那日，家里没有米，母亲叫范进拿一只生蛋的母鸡到集上去卖。范进抱着鸡，手里插个草标，一步一踱的，东张西望，在那里寻人买。", "邻居道：“范相公，快些回去！你恭喜中了！你的{main}券到了！”", "范进不看便罢，看了一遍，又念一遍，自己把两手拍了一下，笑了一声，道：“噫！好了！我中了！”说着，往后一交跌倒，牙关咬紧，不省人事。", "老太太慌了，慌将几口开水灌了过来。他爬将起来，又拍着手大笑道：“噫！好！我中了！”笑着，不由分说，就往门外飞跑，把报录人和邻居都吓了一跳。走出大门不多路，一脚踹在塘里，挣起来，头发都跌散了，两手黄泥，淋淋漓漓一身的水。", "众人拉他不住，拍着笑着，一直走到集上去了。众人大眼望小眼，一齐道：“原来新贵人欢喜疯了。”"], "ending": "胡屠户凶神似的走到跟前，说道：“该死的畜生！你中了甚么？”一个嘴巴打将去。众人和邻居见这模样，忍不住的笑。"}, {"id": "taohuayuan", "title": "桃花源记", "author": "陶渊明", "tag": "文言 · 记叙", "opening": "晋太元中，武陵人捕鱼为业。缘溪行，忘路之远近。", "body": ["晋太元中，武陵人捕鱼为业。缘溪行，忘路之远近。忽逢桃花林，夹岸数百步，中无杂树，芳草鲜美，落英缤纷。渔人甚异之，复前行，欲穷其林。", "林尽水源，便得一山，山有小口，仿佛若有光。便舍船，从口入。初极狭，才通人。复行数十步，豁然开朗。", "二零二六年秋，打工人点餐为业。刷手机，忘路之远近。忽逢一店，排队数百步，中无插队，柜员和善，出餐甚快。打工人甚异之，复前行，欲穷其队。", "队尽街角，便得一店，门有小口，仿佛若有光。便弃车，从口入。初极狭，才通人。复行数十步，豁然开朗。", "土地平旷，屋舍俨然，有良田美池桑竹之属。阡陌交通，鸡犬相闻。其中往来种作，男女衣着，悉如外人。黄发垂髫，并怡然自乐。", "见客人，乃大惊，问所从来。具答之。便要还家，设{main}{side}作食。村中闻有此人，咸来问讯。", "自云先世避涨价之乱，率妻子邑人来此绝境，不复出焉，遂与外人间隔。问今是何价，乃不知有涨，无论翻倍。", "此人一一为具言所闻，皆叹惋。余人各复延至其家，皆出{side}。停数日，辞去。此中人语云：“不足为外人道也。”"], "ending": "南阳刘子骥，高尚士也，闻之，欣然规往。未果，寻病终。后遂无问津者。"}, {"id": "loushiming", "title": "陋室铭", "author": "刘禹锡", "tag": "文言 · 短章", "opening": "山不在高，有仙则名。水不在深，有龙则灵。", "body": ["山不在高，有仙则名。水不在深，有龙则灵。店不在大，有{side}则名。", "苔痕上阶绿，草色入帘青。谈笑有鸿儒，往来无白丁。", "可以调{drink}，阅菜单。无催促之乱耳，无排号之劳形。", "邻座有小儿啼哭，窗外有车马喧声。然坐此店中，心自安之。"], "ending": "南阳诸葛庐，西蜀子云亭。孔子云：何陋之有？"}, {"id": "ailianshuo", "title": "爱莲说", "author": "周敦颐", "tag": "文言 · 托物言志", "opening": "水陆草木之花，可爱者甚蕃。", "body": ["水陆草木之花，可爱者甚蕃。晋陶渊明独爱菊。自李唐来，世人甚爱牡丹。", "予独爱{side}之出油锅而不染，濯酱料而不妖，中通外直，不蔓不枝，香远益清，亭亭净植，可远观而不可亵玩焉。", "予谓菊，花之隐逸者也；牡丹，花之富贵者也；{side}，花之君子者也。", "噫！菊之爱，陶后鲜有闻。{side}之爱，同予者何人？牡丹之爱，宜乎众矣！"], "ending": "同予者何人？——大约只有加班到十点的人吧。"}, {"id": "chushibiao", "title": "出师表", "author": "诸葛亮", "tag": "文言 · 表", "opening": "先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。", "body": ["先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。然侍卫之臣不懈于内，忠志之士忘身于外者，盖追先帝之殊遇，欲报之于陛下也。", "臣本学生，躬耕于工位，苟全性命于加班，不求闻达于食堂。老板不以臣懒惰，猥自枉屈，三顾臣于工位之中，咨臣以点餐之事，由是感激，遂许老板以驱驰。", "后值倾覆，受任于饿殍之际，奉命于午休之间，尔来二十有一分钟矣。", "今预算已定，胃口已足，当奖率三军，北定{main}，庶竭驽钝，攘除饥饿，兴复馋虫，还于工位。此臣所以报老板而忠陛下之职分也。", "至于斟酌损益，进尽忠言，则攸之、祎、允之任也。"], "ending": "今当远离，临表涕零，不知所言。"}, {"id": "chun", "title": "春", "author": "朱自清", "tag": "散文 · 抒情", "opening": "盼望着，盼望着，东风来了，春天的脚步近了。", "body": ["盼望着，盼望着，午休来了，午饭的脚步近了。", "一切都像刚睡醒的样子，欣欣然张开了眼。胃叫起来了，手抖起来了，{main}的香飘起来了。", "{side}偷偷地从油锅里钻出来，黄黄的，脆脆的。店子里，柜台边，瞧去，一大片一大片满是的。坐着，躺着，打两个滚，踢几脚球，赛几趟跑，捉几回迷藏。", "“吹面不寒杨柳风”，不错的，像母亲的手抚摸着你。风里带来些新翻的泥土的气息，混着青草味儿，还有各种{side}的香，都在微微润湿的空气里酝酿。", "天上风筝渐渐多了，地上孩子也多了。城里乡下，家家户户，老老小小，也赶趟儿似的，一个个都出来了。舒活舒活筋骨，抖擞抖擞精神，各做各的一份事去。"], "ending": "{main}像刚落地的娃娃，从头到脚都是新的，它生长着。\n{main}像小姑娘，花枝招展的，笑着，走着。\n{main}像健壮的青年，有铁一般的胳膊和腰脚，领着我们上前去。"}, {"id": "bianselong", "title": "变色龙", "author": "契诃夫", "tag": "外国小说 · 讽刺", "opening": "警官奥楚蔑洛夫穿着新的军大衣，提着小包，穿过市场的广场。", "body": ["店员小奥穿着崭新的制服，端着托盘，穿过点餐的人群。他身后跟着一个端盘子的伙计，手里托着一个盛满{side}的纸袋。", "忽然间，人群里传来一声嚷叫：“这到底是谁的{side}？谁把他家的{side}扔在这儿？”", "小奥微微探身向前，往人群里看。那个纸袋就摆在取餐台上，{side}撒了一地，过路的人正绕着它走。", "“这是谁干的？”小奥挤进人群，“我绝不放过这件事！我要给那些把东西乱扔的人一个教训！这准是那些不守规矩的顾客干的……我要罚他的款！”", "“长官，这好像是……”伙计开口说，“这好像是会员的订单，我刚才看见他拿着金卡。”", "“哦，是会员的？”小奥立刻换上笑脸，“那就另当别论了。会员的{side}，那是应该好好保管的，怎么能随便放在这儿。伙计，赶紧给人家收起来，再补一份新的。”", "“长官，可这好像又不是会员的，我看见是外卖小哥放在这儿的。”", "“外卖小哥？”小奥的脸又拉长了，“那更不像话！这些外卖的，一天到晚横冲直撞！这得记下来，报给平台。”", "“可这明明是……”", "“少废话！”小奥把身上的制服一裹，“我自有判断。”"], "ending": "小奥穿过人群，继续往前走。他把制服又裹了裹，因为天气还不算热。"}, {"id": "hezhou", "title": "核舟记", "author": "魏学洢", "tag": "文言 · 说明", "opening": "明有奇巧人曰王叔远，能以径寸之木，为宫室、器皿、人物，以至鸟兽、木石，罔不因势象形，各具情态。", "body": ["今有奇巧人曰麦乐送，能以方寸之盒，为{main}、{side}、{drink}，以至酱料、餐巾、玩具，罔不因势象形，各具情态。", "盒上下长约八寸有奇，高可二掌许。中轩敞者为舱，{main}居之。", "旁开小格，左右各二，共四格。启格而观，酱料相望焉。", "闭之，则右印“趁热食用”，左印“如有问题请联系门店”，朱色注之。", "盒盖内侧稍平，则印字其上，文曰“保质期至”，细若蚊足，钩画了了，其色墨。", "又用鸡块一方，刻“{store}”二字，若为签记。", "通计一盒，为{main}一、{side}一、{drink}一、酱料二、餐巾一，为格四、为字共若干。而计其长曾不盈掌。盖简{side}之细者修狭者为之。"], "ending": "嘻，技亦灵怪矣哉！"}];
-const FALLBACK = {"main": "巨无霸", "side": "薯条", "drink": "可乐", "store": "麦当劳"};
-
-/* ── 与 mcd_chinese.py 保持一致的分类逻辑 ──
-   这几张词表由 build_web.py 从 mcd_chinese.py 注入，不在网页这边单独维护，
-   免得两边慢慢漂移（之前就漂过一次）。 */
-const DRINK_EXACT = ["水", "矿泉水", "纯净水", "饮用水", "苏打水", "气泡水", "冰水"];
-const DRINK_WORDS = ["可乐", "雪碧", "芬达", "咖啡", "拿铁", "美式", "奶茶", "果汁", "橙汁", "豆浆", "牛奶"];
-const DRINK_SUFFIX = ["茶", "水"];
-const SIDE_WORDS  = ["薯条", "鸡块", "鸡翅", "沙拉", "玉米", "洋葱圈", "冰淇淋", "麦旋风", "新地", "圣代", "蛋挞", "水果"];
-const SIDE_SUFFIX = ["派"];
-const MAIN_MARKERS = ["堡", "卷", "饭", "粥", "巨无霸", "麦香鱼"];
-const SIZE_PREFIX = ["超大", "大", "中", "小"];
-
-const stripSize = s => { for (const p of SIZE_PREFIX)
-  if (s.startsWith(p) && s.length > p.length + 1) return s.slice(p.length); return s; };
-
-/* 三级判定：整名 → 子串 → 后缀。
-   只用子串会误伤：旧版 DRINK_WORDS 里有「水」，「水果派」就被当成了饮品。 */
-function isDrink(name){
-  if (DRINK_EXACT.includes(name)) return true;
-  if (DRINK_WORDS.some(w => name.includes(w))) return true;
-  return DRINK_SUFFIX.some(s => name.endsWith(s));
-}
-function isSide(name){
-  if (SIDE_WORDS.some(w => name.includes(w))) return true;
-  return SIDE_SUFFIX.some(s => name.endsWith(s));
-}
-
-function classify(items){
-  // 与 mcd_chinese.py 的 classify() 保持一致：三者互不重叠
-  const drinks = items.filter(isDrink);
-  const mains = [], sides = [];
-  for (const i of items){
-    if (drinks.includes(i)) continue;
-    if (MAIN_MARKERS.some(w => i.includes(w))) mains.push(i);
-    else sides.push(i);
+function normalizeItems(raw) {
+  if (!Array.isArray(raw)) throw new Error('订单餐品必须是数组');
+  const merged = new Map();
+  for (const item of raw) {
+    let name, quantity;
+    if (typeof item === 'string') { name = item; quantity = 1; }
+    else if (item && typeof item === 'object') { name = item.name; quantity = item.quantity ?? 1; }
+    else throw new Error('餐品格式有误');
+    if (typeof name !== 'string') throw new Error('餐品名称应为文字');
+    if (/[\x00-\x1f]/.test(name)) throw new Error('餐品名称不能包含控制字符');
+    name = name.trim().replace(/\s+/g, ' ');
+    if (!name || [...name].length > 72 || /[\x00-\x1f]/.test(name)) throw new Error('餐品名称为空或过长');
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) throw new Error('份数应为 1 至 99');
+    if (!merged.has(name) && merged.size >= MAX_ITEMS) throw new Error('最多支持 40 种餐品');
+    merged.set(name, Math.min(99, (merged.get(name) || 0) + quantity));
   }
-  if (!mains.length){
-    const first = items.find(i => !drinks.includes(i)) ?? items[0];
-    mains.push(first);
-    for (let k = sides.length - 1; k >= 0; k--) if (sides[k] === first) sides.splice(k, 1);
-  }
-  return {mains, sides, drinks};
+  if (!merged.size) throw new Error('请先选一种餐品');
+  return [...merged].map(([name, quantity]) => ({ name, quantity }));
 }
-
-function fields(items){
-  const {mains, sides, drinks} = classify(items);
-  const uniq = [...new Set(items)];
+function parseItems(text) {
+  if (text.length > 5000) throw new Error('输入不能超过 5000 字');
+  const parts = text.split(/[,，、;；\n]+/).map(x => x.trim()).filter(Boolean);
+  return normalizeItems(parts.map(x => {
+    const m = x.match(/^(.*?)\s*[×*xX]\s*(\d{1,2})$/);
+    return m ? {name:m[1].trim(),quantity:Number(m[2])} : {name:x,quantity:1};
+  }));
+}
+function currentItems() {
+  const typed = $('customInput').value.trim();
+  return typed ? parseItems(typed) : normalizeItems([...picked]);
+}
+function classify(name) {
+  for (const kind of ['main','side','drink']) if (CATALOG.exact[kind].includes(name)) return kind;
+  for (const kind of ['main','side','drink']) if (CATALOG.markers[kind].some(x => name.includes(x))) return kind;
+  if (/(水|茶)$/.test(name) && !/(奶茶派|抹茶派)$/.test(name)) return 'drink';
+  return 'side';
+}
+function fields(items) {
+  const group = {main:[], side:[], drink:[]};
+  for (const item of items) group[classify(item.name)].push(item.name);
+  const main = group.main[0] || items[0].name;
+  const others = items.filter(x => x.name !== main).map(x=>x.name);
   return {
-    main: mains[0],
-    side: sides.length ? stripSize(sides[0]) : FALLBACK.side,
-    drink: drinks.length ? stripSize(drinks[0]) : FALLBACK.drink,
-    items: uniq.join("、"),
-    count: items.length,
-    store: FALLBACK.store,
+    main, side:group.side[0] || others[0] || main,
+    drink:group.drink[0] || others[0] || main,
+    items:items.map(x=>x.name).join('、'),
+    count:String(items.reduce((s,x)=>s+x.quantity,0)),
+    kinds:String(items.length),
   };
 }
-
-const fill = (t, f) => t.replace(/\{(\w+)\}/g, (m, k) => (k in f ? f[k] : m));
-
-function lessonNumber(items){
-  // 必须和 Python 的 lesson_number() 结果一致。
-  // 注意用 for...of + codePointAt(0) 走码点 —— charCodeAt 取的是 UTF-16 码元，
-  // 遇到 emoji 这类非 BMP 字符会被拆成两个代理项，算出来的课号和 Python 对不上。
-  let h = 0;
-  for (const ch of items.join("|")) h = (h * 31 + ch.codePointAt(0)) % 999983;
+function stableNumber(items) {
+  const b = new TextEncoder().encode(items.map(x=>`${x.name}*${x.quantity}`).join('|'));
+  let h = 2166136261;
+  for (const v of b) { h ^= v; h = Math.imul(h, 16777619) >>> 0; }
   return h % 999 + 1;
 }
-
-function compose(items, lesson){
-  const f = fields(items);
+function fill(template, f) {
+  return template.replace(/\{([a-z]+)\}/g, (_, key) => {
+    if (!(key in f)) throw new Error('课文模板字段无效');
+    return f[key];
+  });
+}
+function compose(items, lesson) {
+  const norm = normalizeItems(items), f = fields(norm);
   return {
-    no: lessonNumber(items),
-    title: lesson.title, author: lesson.author,
-    tag: lesson.tag || "",
-    opening: fill(lesson.opening, f),
-    body: lesson.body.map(p => fill(p, f)),
-    ending: lesson.ending ? fill(lesson.ending, f) : "",
-    items,
+    id:lesson.id, number:stableNumber(norm), title:lesson.title,
+    genre:lesson.genre, inspired_by:lesson.inspired_by || '',
+    opening:fill(lesson.opening,f), body:lesson.body.map(p=>fill(p,f)),
+    ending:fill(lesson.ending,f), items:norm,
+    notice:'原创文学戏仿 · 非麦当劳官方产品'
   };
 }
-
-/* ── 状 态 ── */
-const FOODS = ["巨无霸","麦辣鸡腿堡","板烧鸡腿堡","双层吉士堡","麦香鱼",
-               "中薯条","麦乐鸡","鸡翅","苹果派","玉米杯",
-               "可乐","雪碧","芬达","拿铁","橙汁"];
-const picked = new Set(["巨无霸","中薯条","可乐"]);
-let lessonIdx = 0;
-
-const $ = id => document.getElementById(id);
-
-/* ── 渲染选择区 ── */
-FOODS.forEach(name => {
-  const b = document.createElement("button");
-  b.className = "chip" + (picked.has(name) ? " on" : "");
-  b.textContent = name;
-  b.onclick = () => {
-    picked.has(name) ? picked.delete(name) : picked.add(name);
-    b.classList.toggle("on");
-    updPicked();
-  };
-  $("foods").appendChild(b);
-});
-
-LESSONS.forEach((l, i) => {
-  const b = document.createElement("button");
-  b.className = "chip lesson" + (i === 0 ? " on" : "");
-  b.textContent = `《${l.title}》`;
-  b.onclick = () => {
-    lessonIdx = i;
-    [...$("lessons").children].forEach((c, j) => c.classList.toggle("on", j === i));
-    if ($("lesson").classList.contains("show")) render();
-  };
-  $("lessons").appendChild(b);
-});
-
-function currentItems(){
-  const typed = $("custom").value.trim();
-  if (typed) return typed.replace(/，/g, ",").split(",").map(s => s.trim()).filter(Boolean);
-  return [...picked];
+function showToast(text) {
+  $('toast').textContent = text;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>$('toast').classList.remove('show'), 2600);
 }
-
-function updPicked(){
-  const it = currentItems();
-  $("picked").textContent = "当前订单：" + (it.length ? it.join("、") : "（还没选，默认给一份巨无霸）");
+function showError(message) { $('error').hidden = !message; $('error').textContent = message || ''; }
+function make(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
-
-$("custom").addEventListener("input", updPicked);
-
-/* ── 生 成 ── */
-
-/* 一律用 createElement + textContent 建节点。
-   饭品名是从输入框来的、课文正文是从模板来的，都不能拼进 innerHTML ——
-   拼了就等于把注入入口敞开。textContent 天然免疫，比手写转义可靠。 */
-function el(tag, cls, text){
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
+function setActiveLesson(id) {
+  selectedId = id;
+  document.querySelectorAll('.lesson-chip').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.id === id)));
 }
-
-function render(){
-  let items = currentItems();
-  if (!items.length) items = ["巨无霸","中薯条","可乐"];
-  const d = compose(items, LESSONS[lessonIdx]);
-
-  const box = $("lesson");
-  box.textContent = "";                       // 清空，不用 innerHTML
-  box.classList.remove("show");
-
-  box.appendChild(el("div", "lessno",
-    `麦门语文课 · 第 ${String(d.no).padStart(3, "0")} 课`));
-  box.appendChild(el("div", "title", d.title));
-  box.appendChild(el("div", "author", d.author));
-  if (d.tag) box.appendChild(el("div", "style-tag", d.tag));
-  box.appendChild(el("div", "note", "（根据你的订单改编）"));
-  box.appendChild(el("div", "rule"));
-
-  const body = el("div", "body");
-  body.appendChild(el("p", "open", d.opening));
-  d.body.forEach(p => body.appendChild(el("p", null, p)));
-  if (d.ending) body.appendChild(el("p", "end", d.ending));
-  box.appendChild(body);
-
-  box.appendChild(el("div", "theend", "课 文 完"));
-
-  const foot = el("div", "foot");
-  foot.appendChild(document.createTextNode("本课订单："));
-  foot.appendChild(el("b", null, d.items.join("、")));
-  box.appendChild(foot);
-
-  box.classList.add("show");
+function renderDoc(d) {
+  lastDoc = d; imageQueue = []; imageIndex = 0;
+  $('imageButton').textContent = '保存课文图片 ↓';
+  $('lessonNumber').textContent = `第 ${String(d.number).padStart(3,'0')} 课`;
+  $('lessonTitle').textContent = d.title;
+  $('lessonGenre').textContent = d.genre;
+  $('lessonInspiration').textContent = d.inspired_by ? `文学灵感：${d.inspired_by}` : '';
+  const box = $('lessonBody'); box.replaceChildren();
+  for (const paragraph of [d.opening,...d.body,d.ending]) box.appendChild(make('p',null,paragraph));
+  $('lessonItems').textContent = `本课餐品：${d.items.map(x=>x.name+(x.quantity>1?' ×'+x.quantity:'')).join('、')}`;
 }
-
-function toast(msg){
-  const t = $("toast");
-  t.textContent = msg; t.classList.add("on");
-  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 1800);
-}
-
-$("go").onclick = render;
-
-$("again").onclick = () => {
-  lessonIdx = (lessonIdx + 1) % LESSONS.length;
-  [...$("lessons").children].forEach((c, j) => c.classList.toggle("on", j === lessonIdx));
-  render();
-};
-
-/* 复制的内容和页面显示保持一致：标题/作者/文体 + 正文 + 结尾 */
-function plainText(d){
-  const L = [`《${d.title}》`, d.author];
-  if (d.tag) L.push(d.tag);
-  L.push("", d.opening, "");
-  d.body.forEach(p => L.push(p, ""));
-  if (d.ending) L.push(d.ending, "");
-  L.push("课文完", "", `本课订单：${d.items.join("、")}`,
-         "", "—— 麦门语文课 · 把麦当劳订单改写成语文课本");
-  return L.join("\n");
-}
-
-function currentDoc(){
-  if (!$("lesson").classList.contains("show")) return null;
-  let items = currentItems();
-  if (!items.length) items = ["巨无霸","中薯条","可乐"];
-  return compose(items, LESSONS[lessonIdx]);
-}
-
-$("copy").onclick = async () => {
-  const d = currentDoc();
-  if (!d) { toast("先生成一篇吧"); return; }
-  const txt = plainText(d);
+function generate() {
   try {
-    await navigator.clipboard.writeText(txt);
-    toast("已复制，去发给朋友吧");
-  } catch {
-    // 老浏览器 / 非安全上下文：退回到选区复制
-    const ta = document.createElement("textarea");
-    ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand("copy"); toast("已复制"); }
-    catch { toast("复制失败，请手动选中"); }
-    document.body.removeChild(ta);
-  }
-};
-
-/* ── 导出课文图片 ──
-   全部在浏览器里用 Canvas 画，不请求任何外部服务 —— 订单内容不出本机。
-   竖版 1080 宽，适配手机分享；太长就分页，避免把字缩到看不清。 */
-const IMG = {
-  w: 1080, pad: 92, maxH: 3600,
-  noSize: 24, titleSize: 68, authorSize: 32, tagSize: 27,
-  bodySize: 35, lineH: 64, paraGap: 22, footSize: 25,
-  bg: "#FBF9F4", ink: "#1E2128", dim: "#5C6169", mute: "#8B8F99",
-  gold: "#B08A2E", red: "#9E3B32",
-  serif: '"Noto Serif SC","Songti SC","SimSun",serif',
-  sans: '-apple-system,"PingFang SC","Microsoft YaHei",sans-serif',
-};
-
-function wrapCJK(ctx, text, maxW, firstIndent){
-  // 中文按字符断行；for...of 走码点，emoji 不会被拆成半个
-  const out = [];
-  let cur = "";
-  let limit = maxW - (firstIndent || 0);
-  for (const ch of text){
-    const t = cur + ch;
-    if (ctx.measureText(t).width > limit && cur){
-      out.push(cur); cur = ch; limit = maxW;
-    } else cur = t;
-  }
-  if (cur) out.push(cur);
-  return out.length ? out : [""];
+    const items = currentItems();
+    const lesson = LESSONS.find(x=>x.id === selectedId);
+    if (!lesson) throw new Error('找不到课文');
+    renderDoc(compose(items,lesson));
+    updateSummary(items);
+    showError('');
+    showToast('新课文写好了！');
+  } catch(e) {showError(e.message);}
 }
-
-function buildPages(d){
-  const c = document.createElement("canvas");
-  const ctx = c.getContext("2d");
-  const maxW = IMG.w - IMG.pad * 2;
-
-  ctx.font = `${IMG.bodySize}px ${IMG.serif}`;
-  const indent = IMG.bodySize * 2;
-  const blocks = [];
-  blocks.push({ kind: "p", lines: wrapCJK(ctx, d.opening, maxW, indent), open: true });
-  d.body.forEach(t => blocks.push({ kind: "p", lines: wrapCJK(ctx, t, maxW, indent) }));
-  if (d.ending) blocks.push({ kind: "p", lines: wrapCJK(ctx, d.ending, maxW, indent), end: true });
-
-  // 按 maxH 切页
-  const headH = IMG.pad + IMG.noSize + 30 + IMG.titleSize + 26 + IMG.authorSize
-              + (d.tag ? IMG.tagSize + 16 : 0) + 40 + 30;
-  const footH = 26 + IMG.lineH + IMG.pad;
-  const pages = [];
-  let cur = [], used = headH;
-  for (const b of blocks){
-    let h = b.lines.length * IMG.lineH + IMG.paraGap;
-    if (used + h + footH > IMG.maxH && cur.length){ pages.push(cur); cur = []; used = headH; }
-    // 单段就超一页的极端情况：硬切
-    while (used + h + footH > IMG.maxH){
-      const room = Math.max(1, Math.floor((IMG.maxH - footH - used) / IMG.lineH));
-      cur.push({ ...b, lines: b.lines.slice(0, room), cut: true });
-      b = { ...b, lines: b.lines.slice(room), open: false };
-      h = b.lines.length * IMG.lineH + IMG.paraGap;
-      pages.push(cur); cur = []; used = headH;
-    }
-    cur.push(b); used += h;
-  }
-  if (cur.length || !pages.length) pages.push(cur);
-  return { pages, headH, footH, maxW, indent };
+function updateSummary(items) {
+  $('orderSummary').textContent = `本课使用：${items.map(x=>x.name+(x.quantity>1?' ×'+x.quantity:'')).join('、')}`;
 }
-
-function drawPage(d, page, meta, idx, total){
-  const H = Math.min(IMG.maxH, meta.headH + page.reduce((s, b) =>
-    s + b.lines.length * IMG.lineH + IMG.paraGap, 0) + meta.footH + 40);
-  const cvs = document.createElement("canvas");
-  const S = 2;                                  // 2 倍分辨率，手机上更清晰
-  cvs.width = IMG.w * S; cvs.height = H * S;
-  const x = cvs.getContext("2d");
-  x.scale(S, S);
-  x.fillStyle = IMG.bg; x.fillRect(0, 0, IMG.w, H);
-  x.textBaseline = "top";
-  const cx = IMG.w / 2;
-  let y = IMG.pad;
-
-  x.fillStyle = IMG.mute; x.textAlign = "center";
-  x.font = `${IMG.noSize}px ${IMG.sans}`;
-  const noTxt = `麦门语文课 · 第 ${String(d.no).padStart(3, "0")} 课`
-              + (total > 1 ? `　(${idx}/${total})` : "");
-  x.fillText(noTxt, cx, y); y += IMG.noSize + 30;
-
-  x.fillStyle = IMG.ink; x.font = `700 ${IMG.titleSize}px ${IMG.serif}`;
-  x.fillText(d.title, cx, y); y += IMG.titleSize + 26;
-
-  x.fillStyle = IMG.dim; x.font = `${IMG.authorSize}px ${IMG.serif}`;
-  x.fillText(d.author, cx, y); y += IMG.authorSize + (d.tag ? 16 : 0);
-  if (d.tag){
-    x.fillStyle = IMG.gold; x.font = `${IMG.tagSize}px ${IMG.sans}`;
-    x.fillText(d.tag, cx, y); y += IMG.tagSize;
-  }
-  y += 44;
-
-  x.textAlign = "left"; x.font = `${IMG.bodySize}px ${IMG.serif}`;
-  for (const b of page){
-    x.fillStyle = b.end ? IMG.dim : IMG.ink;
-    b.lines.forEach((ln, i) => {
-      x.fillText(ln, IMG.pad + (i === 0 ? meta.indent : 0), y);
-      y += IMG.lineH;
+function updateFromInputs() {
+  try { updateSummary(currentItems()); showError(''); }
+  catch(e) { $('orderSummary').textContent = '等待选择有效餐品'; showError(e.message); }
+}
+function init() {
+  for (const food of CATALOG.quick_picks) {
+    const b = make('button','food-chip',food);
+    b.type='button'; b.setAttribute('aria-pressed',String(picked.has(food)));
+    b.addEventListener('click',()=>{
+      if (picked.has(food)) picked.delete(food); else picked.add(food);
+      b.setAttribute('aria-pressed',String(picked.has(food)));
+      updateFromInputs();
     });
-    y += IMG.paraGap;
+    $('foodChips').appendChild(b);
   }
-
-  y = H - IMG.pad - IMG.lineH;
-  x.textAlign = "center"; x.fillStyle = IMG.mute; x.font = `${IMG.footSize}px ${IMG.sans}`;
-  x.fillText(`本课订单：${d.items.join("、")}　·　麦门语文课`, cx, y);
-  // 注：只写餐品名，不带订单号、时间、门店等可识别信息
-  return cvs;
+  LESSONS.forEach((l,i)=>{
+    const b=make('button','lesson-chip'); b.type='button'; b.dataset.id=l.id;
+    b.setAttribute('aria-pressed',String(l.id===selectedId));
+    b.appendChild(make('span','idx',String(i+1).padStart(2,'0')));
+    b.appendChild(make('span','name',l.title));
+    b.addEventListener('click',()=>{ setActiveLesson(l.id); generate(); });
+    $('lessonChips').appendChild(b);
+  });
+  $('customInput').addEventListener('input',updateFromInputs);
+  $('generateButton').addEventListener('click',generate);
+  $('surpriseButton').addEventListener('click',()=>{
+    const i=LESSONS.findIndex(x=>x.id===selectedId);
+    setActiveLesson(LESSONS[(i+1)%LESSONS.length].id); generate();
+  });
+  $('copyButton').addEventListener('click',copyDoc);
+  $('imageButton').addEventListener('click',saveImage);
+  $('importButton').addEventListener('click',()=>$('importFile').click());
+  $('importFile').addEventListener('change',importFile);
+  updateFromInputs(); generate();
+}
+function textContent(d) {
+  return [`麦门语文 · 第 ${String(d.number).padStart(3,'0')} 课`,d.title,`原创文学戏仿 · ${d.genre}`,'',d.opening,...d.body,d.ending,'','— 课文完 —',`本课餐品：${d.items.map(x=>x.name).join('、')}`].join('\n\n');
+}
+async function copyDoc() {
+  if(!lastDoc) return;
+  const value = textContent(lastDoc);
+  try {
+    if(navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
+    else {
+      const area=make('textarea'); area.value=value; area.style.position='fixed'; area.style.opacity='0';
+      document.body.appendChild(area); area.select();
+      const ok=document.execCommand('copy'); area.remove();
+      if(!ok) throw new Error('复制失败');
+    }
+    showToast('全文已复制，可以分享啦');
+  } catch(e) {showToast('复制失败，请手动选择课文内容');}
+}
+async function importFile(event) {
+  const file=event.target.files?.[0];
+  event.target.value='';
+  if(!file) return;
+  if(file.size > 100_000) {showError('文件过大（最多 100KB）');return;}
+  try {
+    const data=JSON.parse(await file.text());
+    if (!data || data.format!=='mcd-chinese-class/items-v1' || !Array.isArray(data.items))
+      throw new Error('请导入由本项目 --export-web 生成的 JSON');
+    const keys=Object.keys(data);
+    if(keys.some(x=>!['format','items'].includes(x))) throw new Error('文件含有额外字段，请使用脱敏订单文件');
+    const items=normalizeItems(data.items);
+    $('customInput').value = items.map(x=>x.name+(x.quantity>1?' ×'+x.quantity:'')).join('，');
+    updateFromInputs(); generate();
+    showToast('真实订单餐品已导入；文件未上传到网络');
+  } catch(e) {showError(`导入失败：${e.message}`);}
 }
 
-$("img").onclick = () => {
-  const d = currentDoc();
-  if (!d) { toast("先生成一篇吧"); return; }
-  const meta = buildPages(d);
-  const total = meta.pages.length;
-  let n = 0;
-  const next = () => {
-    if (n >= total) { toast(total > 1 ? `已导出 ${total} 张` : "已导出图片"); return; }
-    const cvs = drawPage(d, meta.pages[n], meta, n + 1, total);
-    cvs.toBlob(b => {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(b);
-      a.download = `麦门语文课_${d.title}${total > 1 ? `_${n + 1}` : ""}.png`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      n++; setTimeout(next, 500);      // 间隔一下，免得浏览器把连续下载拦掉
-    }, "image/png");
-  };
-  next();
-};
+// 无第三方依赖的 Canvas 长图：每一页有相同的标题与页码，不裁剪文字。
+const IMG={w:1080,maxH:3200,pad:96,font:29,leading:60};
+function wrap(ctx,text,width,firstIndent=0) {
+  const lines=[];let line='', indent=firstIndent;
+  // 逐码点遍历，emoji 不会被拆成代理字符。
+  for(const ch of text) {
+    if(ctx.measureText(line+ch).width > width-indent && line) {
+      lines.push({text:line,indent});line='';indent=0;
+    }
+    line+=ch;
+  }
+  if(line) lines.push({text:line,indent});
+  return lines;
+}
+function imageLayout(d) {
+  const c=document.createElement('canvas'),ctx=c.getContext('2d');
+  if(!ctx) throw new Error('当前浏览器不支持 Canvas');
+  ctx.font=`${IMG.font}px serif`;
+  const content=[];
+  for (const p of [d.opening,...d.body,d.ending]) {
+    content.push(...wrap(ctx,p,IMG.w-IMG.pad*2,IMG.font*2).map(x=>({...x,blank:false})));
+    content.push({blank:true});
+  }
+  const headerH=385,footerH=180;
+  const maxLines=Math.floor((IMG.maxH-headerH-footerH)/IMG.leading);
+  const pages=[];
+  for(let start=0;start<content.length;start+=maxLines) pages.push(content.slice(start,start+maxLines));
+  return pages;
+}
+function drawSheet(d,lines,pageIndex,pageCount) {
+  const W=IMG.w,headerH=385,footerH=180;
+  const H=Math.min(IMG.maxH,Math.max(1150,headerH+lines.length*IMG.leading+footerH));
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#fffaf0';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b74135';ctx.fillRect(0,0,W,17);
+  ctx.fillStyle='#a39178';ctx.font='23px sans-serif';
+  ctx.fillText(`麦门语文 · 第 ${String(d.number).padStart(3,'0')} 课`,IMG.pad,97);
+  ctx.textAlign='right';ctx.fillText(`文学小品  /  ${String(pageIndex+1).padStart(2,'0')}`,W-IMG.pad,97);
+  ctx.textAlign='center';ctx.fillStyle='#bc4636';ctx.font='bold 23px sans-serif';ctx.fillText('原 创 文 学 戏 仿',W/2,164);
+  ctx.fillStyle='#262522';ctx.font='bold 59px serif';ctx.fillText(d.title,W/2,248);
+  ctx.font='24px sans-serif';ctx.fillStyle='#8b8375';ctx.fillText(d.genre,W/2,306);
+  ctx.strokeStyle='#ded6c5';ctx.beginPath();ctx.moveTo(IMG.pad,343);ctx.lineTo(W-IMG.pad,343);ctx.stroke();
+  ctx.font=`${IMG.font}px serif`;ctx.fillStyle='#33302b';ctx.textAlign='left';
+  lines.forEach((l,i)=>{if(!l.blank)ctx.fillText(l.text,IMG.pad+(l.indent||0),headerH+i*IMG.leading);});
+  ctx.strokeStyle='#ded6c5';ctx.beginPath();ctx.moveTo(IMG.pad,H-145);ctx.lineTo(W-IMG.pad,H-145);ctx.stroke();
+  ctx.font='22px sans-serif';ctx.fillStyle='#827768';
+  let footer=`本课餐品：${d.items.map(x=>x.name).join('、')}`;
+  while(ctx.measureText(footer).width>W-IMG.pad*2 && footer.length>9) footer=footer.slice(0,-2)+'…';
+  ctx.fillText(footer,IMG.pad,H-104);
+  ctx.font='20px sans-serif';ctx.fillStyle='#9d9487';ctx.fillText('麦门语文课 · 非麦当劳官方产品',IMG.pad,H-64);
+  ctx.textAlign='right';ctx.fillText(`${pageIndex+1} / ${pageCount}`,W-IMG.pad,H-64);
+  return c;
+}
+function saveImage() {
+  if(!lastDoc) return;
+  try {
+    if(!imageQueue.length){imageQueue=imageLayout(lastDoc);imageIndex=0;}
+    const i=imageIndex,canvas=drawSheet(lastDoc,imageQueue[i],i,imageQueue.length);
+    canvas.toBlob(blob=>{
+      if(!blob){showError('图片生成失败，请尝试更新浏览器');return;}
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=`麦门语文_${lastDoc.title}_${i+1}of${imageQueue.length}.png`;
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+      if(i+1<imageQueue.length){imageIndex=i+1;$('imageButton').textContent=`继续保存第 ${imageIndex+1}/${imageQueue.length} 页 ↓`;}
+      else{imageQueue=[];imageIndex=0;$('imageButton').textContent='保存课文图片 ↓';}
+      showToast(imageQueue.length?`第 ${i+1} 页已保存，请继续保存下一页`:'课文图片保存成功');
+    },'image/png');
+  }catch(e){showError(e.message);}
+}
 
-updPicked();
-render();
+// 提供只读测试接口；页面交互依然使用按钮而非直接修改内部状态。
+window.MCD_TEST={normalizeItems,parseItems,stableNumber,compose,imageLayout,currentDoc:()=>lastDoc};
+init();
 </script>
-</body>
-</html>
+</body></html>

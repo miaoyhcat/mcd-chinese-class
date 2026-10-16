@@ -1,71 +1,34 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""把 lessons.json 内联进 web/template.html，生成自包含的 web/index.html。
-
-为什么要构建这一步：演示页要能**双击直接打开**（file://）也能挂在 GitHub Pages 上。
-如果让页面去 fetch('lessons.json')，file:// 下会被 CORS 拦掉，
-所以干脆在构建时把模板烤进 HTML，产物是一个单文件、零依赖的页面。
-
-产物：docs/index.html —— 页面设置里把 Pages 指向 main 分支的 /docs 即可。
-"""
-
-import importlib.util
+"""将网页源文件和原创课文嵌入单个 HTML，供 GitHub Pages / file:// 离线运行。"""
 import json
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-LESSONS = HERE / "lessons.json"
-TPL = HERE / "web" / "template.html"
-# 输出到 docs/ —— GitHub Pages 直接从这里托管，演示地址干净
-OUT = HERE / "docs" / "index.html"
+ROOT = Path(__file__).resolve().parent
 
-REPO_URL = "https://github.com/miaoyhcat/mcd-chinese-class"
-
+def safe_js(value):
+    # JSON 装载入 script：防止 </script> 等结束标签和特殊分隔符打断脚本。
+    return (json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+            .replace('<', '\\u003c').replace('>', '\\u003e')
+            .replace('&', '\\u0026').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029'))
 
 def main():
-    data = json.loads(LESSONS.read_text(encoding="utf-8"))
-    lessons = data["lessons"]
-    fallbacks = data.get("fallbacks", {})
+    raw = (ROOT / 'web/template.html').read_text('utf-8')
+    js = (ROOT / 'web/app.js').read_text('utf-8')
+    js = js.replace('/*__LESSONS__*/', safe_js(json.loads((ROOT/'lessons.json').read_text('utf-8'))['lessons']))
+    js = js.replace('/*__CATALOG__*/', safe_js(json.loads((ROOT/'catalog.json').read_text('utf-8'))))
+    html = raw.replace('/*__CSS__*/', (ROOT / 'web/style.css').read_text('utf-8'))
+    html = html.replace('/*__DATA__*/', '')
+    html = html.replace('/*__JS__*/', js)
+    if '/*__' in html or '__LESSONS__' in html:
+        raise RuntimeError('存在未替换的网页构建占位符')
+    target = ROOT / 'docs/index.html'
+    target.parent.mkdir(exist_ok=True)
+    # 显式写死 LF。默认写文件会按 os.linesep 转换，于是同一份模板在 Windows
+    # 上生成 CRLF、在 Linux 上生成 LF。仓库和 CI 都按 LF 走，所以在 Windows 上
+    # 跑一次 unittest，test_build 的「构建产物与仓库提交一致」就会挂。
+    with open(target, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(html)
+    print(f'构建完成：{target.relative_to(ROOT)} · {len(html.encode("utf-8")):,} bytes · 全部资源内联')
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    # 分类词表从 mcd_chinese.py 导入后注入网页 —— 单一数据源，
-    # 免得命令行和网页两边各自维护一份、慢慢漂移。
-    spec = importlib.util.spec_from_file_location("mc", HERE / "mcd_chinese.py")
-    mc = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mc)
-
-    tpl = TPL.read_text(encoding="utf-8")
-
-    # 用 json.dumps 保证注入的是合法 JS 字面量；</ 转义避免提前闭合 script
-    def js(obj):
-        return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
-
-    out = tpl
-    for key, val in [("__DRINK_EXACT__", mc.DRINK_EXACT),
-                     ("__DRINK_WORDS__", mc.DRINK_WORDS),
-                     ("__DRINK_SUFFIX__", mc.DRINK_SUFFIX),
-                     ("__SIDE_WORDS__", mc.SIDE_WORDS),
-                     ("__SIDE_SUFFIX__", mc.SIDE_SUFFIX),
-                     ("__MAIN_MARKERS__", mc.MAIN_MARKERS),
-                     ("__SIZE_PREFIX__", mc.SIZE_PREFIX)]:
-        out = out.replace(f"/*{key}*/", js(list(val)))
-
-    out = out.replace("/*__LESSONS__*/", js(lessons))
-    out = out.replace("/*__FALLBACKS__*/", js(fallbacks))
-    out = out.replace("https://github.com/OWNER/REPO", REPO_URL)
-
-    # 占位符一个都不能剩 —— 漏掉的话页面会拿空数组静默跑，分类全错却看不出来
-    for leftover in ("__LESSONS__", "__FALLBACKS__", "__DRINK_EXACT__",
-                     "__DRINK_WORDS__", "__DRINK_SUFFIX__", "__SIDE_WORDS__",
-                     "__SIDE_SUFFIX__", "__MAIN_MARKERS__", "__SIZE_PREFIX__",
-                     "OWNER/REPO"):
-        assert leftover not in out, f"占位符 {leftover} 没替换干净"
-
-    OUT.write_text(out, encoding="utf-8")
-    kb = len(out.encode("utf-8")) / 1024
-    print(f"已生成 {OUT.relative_to(HERE)}  ({kb:.0f} KB, 自包含，无外部依赖)")
-    print(f"  内联课文 {len(lessons)} 篇：{'、'.join(l['title'] for l in lessons)}")
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

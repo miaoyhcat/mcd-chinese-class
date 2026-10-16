@@ -1,214 +1,261 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""麦当劳 MCP 最小客户端（只用 Python 标准库，不依赖任何 MCP SDK）。
-
-为什么自己写：本项目的核心逻辑是确定性的文本生成，不需要把 LLM 拖进来。
-直接用标准库完成 Streamable HTTP 握手，整个 Skill 就能脱离 AI 客户端独立跑。
-
-握手顺序：
-    initialize → notifications/initialized → tools/call
-
-三个容易踩的坑（联调记录见 MCP_INTEGRATION.md）：
-  1. 服务端是**无状态**的，initialize 响应里没有 Mcp-Session-Id，每个请求独立 POST。
-  2. 响应体可能是 application/json，也可能是 text/event-stream（SSE），两种都要能解析。
-  3. Accept 头必须同时声明 application/json 和 text/event-stream，只写一个可能被拒。
-"""
+"""麦当劳只读 MCP 客户端（Python 标准库）。不会记录、回显 Token 与订单原文。"""
+from __future__ import annotations
 
 import json
 import os
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
+from datetime import datetime, timezone, timedelta
 
-SERVER = "https://mcp.mcd.cn"
-PROTOCOL_VERSION = "2025-03-26"
-CLIENT_INFO = {"name": "mcd-chinese-class", "version": "1.0.0"}
+from engine import Item, InputError, normalize_items
 
-
-class MCDError(RuntimeError):
-    """MCP 调用失败。所有失败都抛这个，调用方只需处理一种异常。"""
-
-
-def _parse_body(body: str, ctype: str):
-    """把响应体解析成 dict。兼容 JSON 和 SSE 两种返回。"""
-    if "text/event-stream" in (ctype or ""):
-        # SSE：逐行取 data:，最后一条才是结果
-        last = None
-        for line in body.splitlines():
-            line = line.strip()
-            if line.startswith("data:"):
-                chunk = line[5:].strip()
-                if chunk and chunk != "[DONE]":
-                    last = chunk
-        if last is None:
-            raise MCDError("SSE 响应里没有 data 行")
-        body = last
-    try:
-        return json.loads(body)
-    except json.JSONDecodeError:
-        raise MCDError(f"响应不是合法 JSON：{body[:200]}") from None
+SERVER = 'https://mcp.mcd.cn'
+PROTOCOL_VERSION = '2025-03-26'
+MAX_RESPONSE_BYTES = 2_500_000
+CANCEL_MARKERS = ('已取消', '取消', '退款', '关闭', 'cancel', 'refund', 'closed')
 
 
-class MCDClient:
-    """麦当劳 MCP 客户端。只调用只读工具，不涉及下单、支付、领券。"""
-
-    #: 本项目允许调用的工具白名单 —— 全部只读，代码层面挡掉写操作
-    READ_ONLY_TOOLS = {
-        "now-time-info",
-        "query-nearby-stores",
-        "query-meals",
-        "query-meal-detail",
-        "list-nutrition-foods",
-        "order-list",
-        "query-my-coupons",
-        "available-coupons",
-        "query-store-coupons",
-        "campaign-calendar",
-        "calculate-price",
-    }
-
-    def __init__(self, token=None, server=SERVER, timeout=30):
-        self.token = (
-            token
-            or os.environ.get("MCD_MCP_TOKEN")
-            or os.environ.get("MCD_TOKEN")
-            or ""
-        ).strip()
-        if not self.token:
-            raise MCDError(
-                "未提供 MCP Token。\n"
-                "  申请：https://open.mcd.cn/mcp\n"
-                "  设置：export MCD_MCP_TOKEN=\"你的token\""
-            )
-        self.server = server.rstrip("/")
-        self.timeout = timeout
-        self._seq = 0
-        self._ready = False
-
-    # ── 传输层 ──────────────────────────────────────────────
-    def _next_id(self):
-        self._seq += 1
-        return self._seq
-
-    def _post(self, payload, expect_reply=True):
-        raw = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(self.server, data=raw, method="POST")
-        req.add_header("Content-Type", "application/json")
-        # 两种都要声明，否则服务端可能直接拒绝
-        req.add_header("Accept", "application/json, text/event-stream")
-        req.add_header("Authorization", f"Bearer {self.token}")
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                body = resp.read().decode("utf-8", "replace")
-                ctype = resp.headers.get("Content-Type", "")
-        except urllib.error.HTTPError as e:
-            detail = e.read().decode("utf-8", "replace")[:300]
-            if e.code == 429:
-                raise MCDError("触发限流（600 次/分钟），稍后再试") from None
-            if e.code == 401:
-                raise MCDError("Token 无效或已过期，请重新申请") from None
-            raise MCDError(f"HTTP {e.code}：{detail}") from None
-        except urllib.error.URLError as e:
-            raise MCDError(f"连不上 {self.server}：{e.reason}") from None
-        if not expect_reply:
-            return None
-        msg = _parse_body(body, ctype)
-        if isinstance(msg, dict) and msg.get("error"):
-            raise MCDError(f"服务端错误：{msg['error']}")
-        return msg
-
-    # ── 协议层 ──────────────────────────────────────────────
-    def initialize(self):
-        """握手。服务端无状态，握手一次即可，之后每个请求独立。"""
-        self._post(
-            {
-                "jsonrpc": "2.0",
-                "id": self._next_id(),
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": PROTOCOL_VERSION,
-                    "capabilities": {},
-                    "clientInfo": CLIENT_INFO,
-                },
-            }
-        )
-        # 通知没有 id，也不期待回复
-        self._post(
-            {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
-            expect_reply=False,
-        )
-        self._ready = True
-        return self
-
-    def list_tools(self):
-        self._ensure_ready()
-        msg = self._post(
-            {"jsonrpc": "2.0", "id": self._next_id(), "method": "tools/list", "params": {}}
-        )
-        return (msg.get("result") or {}).get("tools") or []
-
-    def call(self, name, arguments=None):
-        """调用一个工具。写操作会被白名单挡下。"""
-        if name not in self.READ_ONLY_TOOLS:
-            raise MCDError(
-                f"工具 {name!r} 不在只读白名单内。\n"
-                "本项目只读取数据，绝不下单、支付或领取任何权益。"
-            )
-        self._ensure_ready()
-        msg = self._post(
-            {
-                "jsonrpc": "2.0",
-                "id": self._next_id(),
-                "method": "tools/call",
-                "params": {"name": name, "arguments": arguments or {}},
-            }
-        )
-        result = msg.get("result") or {}
-        if result.get("isError"):
-            raise MCDError(f"{name} 返回错误：{result}")
-        return _unwrap(result)
-
-    def _ensure_ready(self):
-        if not self._ready:
-            self.initialize()
+class MCPError(RuntimeError):
+    pass
 
 
-def _extract_json(text: str):
-    """从工具的 text 块里把真正的 JSON 抠出来。
-
-    ⚠ 真实联调发现（2026-10-15）：MCP 工具返回的**不是**裸 JSON，而是一段
-    «接口结构说明 + 原始响应» 的混合文本，长这样：
-
-        # API Response Information
-        ...## Response Structure（字段说明）...
-        ## Original Response
-
-        {"success":true,"code":200,"data":{...}}
-
-    所以不能直接 json.loads 整个 text。要定位到 `## Original Response`
-    之后再截取第一个 { 到最后一个 }。
-    """
-    marker = "## Original Response"
+def extract_json(text):
+    """兼容 JSON 和 '## Original Response' 嵌套正文，避免从说明区误读 schema。"""
+    if not isinstance(text, str):
+        raise MCPError('MCP 响应类型错误')
+    marker = '## Original Response'
     if marker in text:
         text = text.split(marker, 1)[1]
-    i, j = text.find("{"), text.rfind("}")
-    if i >= 0 and j > i:
-        text = text[i:j + 1]
-    return json.loads(text)
-
-
-def _unwrap(result: dict):
-    """把 MCP 的 content 数组拆成 Python 数据。
-
-    优先解析 text 块里嵌的 JSON；解析不出来就原样返回文本，
-    交给上层决定怎么办（本项目里会打印原文并停下，不猜）。
-    """
-    contents = result.get("content") or []
-    texts = [c.get("text", "") for c in contents if c.get("type") == "text"]
-    joined = chr(10).join(t for t in texts if t).strip()
-    if not joined:
-        # 有些工具把结构化数据放在 structuredContent 里
-        return result.get("structuredContent") or result
+    decoder = json.JSONDecoder()
+    text = text.strip()
     try:
-        return _extract_json(joined)
-    except (json.JSONDecodeError, ValueError):
-        return joined
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    for i, ch in enumerate(text):
+        if ch in '{[':
+            try:
+                obj, _ = decoder.raw_decode(text[i:])
+                return obj
+            except json.JSONDecodeError:
+                continue
+    raise MCPError('无法识别 MCP JSON 响应格式')
+
+
+def parse_envelope(raw, content_type):
+    """支持 JSON 和 SSE，忽略 keepalive，解析完整 data 多行事件。"""
+    if not raw.strip():
+        return {}
+    if 'text/event-stream' not in content_type:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            raise MCPError('MCP 响应不是合法 JSON') from None
+    events, parts = [], []
+    for line in raw.splitlines() + ['']:
+        if not line:
+            if parts:
+                events.append('\n'.join(parts)); parts = []
+        elif line.startswith('data:'):
+            parts.append(line[5:].lstrip(' '))
+    for item in reversed(events):
+        if item != '[DONE]':
+            try:
+                return json.loads(item)
+            except json.JSONDecodeError:
+                continue
+    raise MCPError('MCP 事件流没有有效数据')
+
+
+def unwrap_tool_result(result):
+    if not isinstance(result, dict):
+        raise MCPError('工具返回格式错误')
+    if result.get('isError'):
+        raise MCPError('麦当劳订单工具返回业务错误')
+    structured = result.get('structuredContent')
+    if isinstance(structured, dict):
+        return structured
+    for content in result.get('content', []):
+        if not isinstance(content, dict) or content.get('type') != 'text':
+            continue
+        try:
+            return extract_json(content.get('text', ''))
+        except MCPError:
+            continue
+    raise MCPError('麦当劳订单工具没有返回可解析的数据')
+
+
+class MCPClient:
+    """单用途客户端：只允许 `order-list`，不会向 MCP 发起任何写操作。"""
+    def __init__(self, token=None, opener=None, timeout=25):
+        self.token = (token if token is not None else os.getenv('MCD_MCP_TOKEN', '')).strip()
+        if not self.token:
+            raise MCPError('缺少 MCD_MCP_TOKEN，请先配置环境变量')
+        self._opener = opener or urllib.request.urlopen
+        self._counter = 0
+        self.timeout = timeout
+        self._initialized = False
+
+    def _request(self, method, params=None, notification=False):
+        data = {'jsonrpc': '2.0', 'method': method}
+        if not notification:
+            self._counter += 1
+            data['id'] = self._counter
+        if params is not None:
+            data['params'] = params
+        req = urllib.request.Request(SERVER, data=json.dumps(data).encode('utf-8'), method='POST')
+        req.add_header('Authorization', f'Bearer {self.token}')
+        req.add_header('Content-Type', 'application/json')
+        req.add_header('Accept', 'application/json, text/event-stream')
+        try:
+            with self._opener(req, timeout=self.timeout) as response:
+                body = response.read(MAX_RESPONSE_BYTES + 1)
+                if len(body) > MAX_RESPONSE_BYTES:
+                    raise MCPError('MCP 响应过大，已安全中止')
+                content_type = response.headers.get('Content-Type', '')
+        except urllib.error.HTTPError as exc:
+            reason = 'Token 无效或过期' if exc.code in (401, 403) else ('请求太频繁' if exc.code == 429 else '上游服务错误')
+            raise MCPError(f'MCP HTTP {exc.code}：{reason}') from None
+        except urllib.error.URLError:
+            raise MCPError('无法连接麦当劳 MCP 服务，请检查网络') from None
+        except TimeoutError:
+            raise MCPError('连接麦当劳 MCP 超时') from None
+        if notification:
+            return {}
+        result = parse_envelope(body.decode('utf-8', 'replace'), content_type)
+        if not isinstance(result, dict):
+            raise MCPError('MCP 响应封装格式错误')
+        if result.get('error'):
+            # 不回显服务端原始 error 字符串，避免泄露隐私数据。
+            raise MCPError('MCP 服务器返回 JSON-RPC 错误')
+        return result.get('result') or {}
+
+    def initialize(self):
+        self._request('initialize', {'protocolVersion': PROTOCOL_VERSION,
+                    'capabilities': {}, 'clientInfo': {'name': 'mcd-chinese-class', 'version': '2.0.0'}})
+        self._request('notifications/initialized', notification=True)
+        self._initialized = True
+
+    def list_orders(self):
+        if not self._initialized:
+            self.initialize()
+        return unwrap_tool_result(self._request('tools/call', {'name': 'order-list', 'arguments': {}}))
+
+
+def find_orders(data, depth=0):
+    if depth > 8:
+        return None
+    if isinstance(data, list):
+        if data and all(isinstance(x, dict) for x in data):
+            keys = set().union(*(set(x.keys()) for x in data[:8]))
+            if keys & {'orderId', 'orderProductList', 'products', 'realTotalAmount'}:
+                return data
+        for v in data:
+            nested = find_orders(v, depth+1)
+            if nested is not None:
+                return nested
+    elif isinstance(data, dict):
+        for key in ('data', 'list', 'orders', 'orderList', 'records', 'result'):
+            if key in data:
+                nested = find_orders(data[key], depth+1)
+                if nested is not None:
+                    return nested
+    return None
+
+
+def time_value(order):
+    for key in ('createTime', 'orderTime', 'createDate', 'orderDate', 'time'):
+        raw = order.get(key)
+        if raw is None or raw == '':
+            continue
+        if isinstance(raw, (int, float)):
+            return float(raw) / (1000 if raw > 1e11 else 1)
+        try:
+            parsed = datetime.fromisoformat(str(raw).replace('/', '-').replace('Z', '+00:00'))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone(timedelta(hours=8)))
+            return parsed.timestamp()
+        except (ValueError, OverflowError):
+            continue
+    return float('-inf')
+
+
+def latest_valid_order(data):
+    orders = find_orders(data)
+    if not orders:
+        return None
+    active = []
+    for o in orders:
+        status = str(o.get('orderStatus') or o.get('status') or '').lower()
+        if not any(x in status for x in CANCEL_MARKERS):
+            active.append(o)
+    return max(active, key=time_value) if active else None
+
+
+# 订单里的字段名在不同接口/不同版本间并不统一。已经用真实返回确认过的是
+# productName + quantity；但官方其它接口的返回示例里出现过 itemName /
+# itemQuantity 的写法。如果只认第一种，套餐子项会整段解析不出来，
+# 于是静默退化成父套餐名（「巨无霸套餐 ×2」而不是「中薯条 + 可乐」）——
+# 不报错，但结果是错的，所以按优先级把别名都认上。
+NAME_KEYS = ('productName', 'name', 'itemName', 'product_name', 'item_name')
+QTY_KEYS = ('quantity', 'itemQuantity', 'item_quantity', 'qty', 'count')
+
+
+def pick_field(mapping, keys):
+    """按优先级取第一个有值的字段；全都没有则返回 None。"""
+    for key in keys:
+        value = mapping.get(key)
+        if value is not None and value != '':
+            return value
+    return None
+
+
+def order_items(order):
+    """套餐优先展开真实子项；不凭套餐名猜组件，合并相同商品及数量。"""
+    if not isinstance(order, dict):
+        raise MCPError('订单结构不是对象')
+    lines = order.get('orderProductList') or order.get('products') or []
+    if not isinstance(lines, list):
+        raise MCPError('订单商品清单不是数组')
+    items = []
+    def quantity(raw):
+        try:
+            n = int(raw if raw is not None else 1)
+            return n if 1 <= n <= 99 else 1
+        except (TypeError, ValueError):
+            return 1
+    for p in lines:
+        if not isinstance(p, dict):
+            continue
+        name = pick_field(p, NAME_KEYS) or ''
+        parent_qty = quantity(pick_field(p, QTY_KEYS))
+        children = p.get('comboItemList') or []
+        found = []
+        if isinstance(children, list):
+            for child in children:
+                if isinstance(child, dict):
+                    child_name = pick_field(child, NAME_KEYS) or ''
+                    if isinstance(child_name, str) and child_name.strip():
+                        # 接口未保证子项数量的语义，按每套餐子项数量解释；在文档中声明。
+                        child_qty = quantity(pick_field(child, QTY_KEYS))
+                        found.append(Item(child_name.strip(), min(99, child_qty * parent_qty)))
+        if found:
+            items.extend(found)
+        elif isinstance(name, str) and name.strip():
+            items.append(Item(name.strip(), parent_qty))
+    try:
+        return normalize_items(items)
+    except InputError as e:
+        raise MCPError(f'订单餐品不符合输入要求：{e}') from None
+
+
+def fetch_latest_items(client):
+    data = client.list_orders()
+    order = latest_valid_order(data)
+    if not order:
+        raise MCPError('没有找到可用的有效订单（可能无订单或均已取消）')
+    items = order_items(order)
+    if not items:
+        raise MCPError('订单中没有可识别的商品')
+    return items
