@@ -1,0 +1,39 @@
+name: Verify project
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m compileall -q engine.py mcd_chinese.py mcd_mcp.py build_web.py
+      - name: Rebuild website
+        run: python build_web.py
+      - name: Verify generated page checked in
+        run: git diff --exit-code -- docs/index.html
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: CLI smoke
+        run: |
+          python mcd_chinese.py --demo --json > /tmp/mcd-demo.json
+          python mcd_chinese.py --list
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test-only browser dependencies
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Browser end-to-end
+        run: python tests/browser_smoke.py

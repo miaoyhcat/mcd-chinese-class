@@ -1,231 +1,182 @@
-# 麦门语文课 · mcd-chinese-class
+<div align="center">
 
-> **如果一份麦当劳订单变成语文课本，会是什么样？**
+# 📖 麦门语文课
+
+### 今日这单，值得一篇课文。
+
+**一份麦当劳订单，十六种原创文学戏仿。** 选好餐品，几秒钟生成自己的“语文课文”。
+
+[🎬 **在线体验**](https://miaoyhcat.github.io/mcd-chinese-class/) · [📋 比赛报名 #716](https://github.com/M-China/mcd-developer-innovation-challenge/issues/716) · [🔎 MCP 技术实现](MCP_INTEGRATION.md)
+
+</div>
+
+> **程序员创意开发大赛作品** · 无付费 API · Python 标准库 · 完整静态网页 · 只读 MCP · 本地隐私优先
 >
-> 选择餐品与文学作品，生成一篇属于这顿饭的趣味课文，还能导出成适合分享的图片。
+> 本项目非麦当劳官方产品。文学戏仿文章为独立创作，并非原著文字替换或官方教材。
 
-**[🎬 立即在线体验](https://miaoyhcat.github.io/mcd-chinese-class/)** · **[📖 项目源码](https://github.com/miaoyhcat/mcd-chinese-class)** · **[📝 参赛报名 #716](https://github.com/M-China/mcd-developer-innovation-challenge/issues/716)**
+## ✨ 三步开始
 
-![麦门语文课演示截图](images/demo.png)
+1. **挑餐品**：点击巨无霸、薯条、可乐等快捷选项，也能输入自己的餐品。
+2. **选课文**：从十六篇原创文学小品中挑风格；每篇都有独立的小故事。
+3. **带走课文**：一键复制全文，或导出适合手机分享的高清 PNG 图片；长文按页导出。
 
-## 这是什么？
+**最快体验：直接点击 [网页演示](https://miaoyhcat.github.io/mcd-chinese-class/)，无需账号、Token 或安装。** 网页仅在本地运算，没有广告、远程 AI 请求或第三方追踪。
 
-《麦门语文课》是一个把麦当劳餐品写进文学戏仿课文的趣味小项目。
+## 📷 页面预览
 
-比如，选中「巨无霸、中薯条、可乐」，再选择《背影》，页面会根据这些餐品生成对应的课文内容。不同课文有不同的文体和叙述方式，读完可以复制全文或生成分享图片。
+![麦门语文课桌面版界面](assets/preview-desktop.jpg)
 
-**这不是语文习题生成器：没有课后习题、答案或考试功能。** 项目的重点是好读、好玩、好分享。
+<details><summary>📱 查看手机端截图</summary>
 
-### 核心功能
+![麦门语文课手机端](assets/preview-mobile.jpg)
 
-- **16 篇课文模板**：覆盖散文、小说、古文等多种风格。
-- **零门槛网页试玩**：直接选择餐品，或输入自己的餐品名称；不需要注册或 API Key。
-- **一键分享**：复制正文，或在浏览器中导出 PNG；较长文章支持分页导出。
-- **真实订单接入（可选）**：通过麦当劳 MCP 的 `order-list` 工具读取历史订单的餐品名称并生成课文。
-- **纯 Python 标准库**：命令行生成与 MCP 客户端无需安装第三方 Python 依赖，也不调用大模型生成正文。
-- **开源、可复现**：课文模板维护在 `lessons.json` 中；网页版由 `build_web.py` 构建。
+</details>
 
-## 30 秒体验
+项目的前端源码在 `web/`，成品 `docs/index.html` 为独立单文件，可直接由 GitHub Pages 托管。
 
-### 方法一：打开网页（推荐）
+> 提交新版本后，可用浏览器打开在线体验链接。开发者运行 `python build_web.py` 即可重新生成网页。
 
-访问 **https://miaoyhcat.github.io/mcd-chinese-class/**。
+## 📚 十六篇原创课文
 
-1. 勾选餐品，或在输入框用逗号填写餐品名称。
-2. 选择一篇课文，点击 **「生成课文」**。
-3. 点击 **「复制」** 或 **「生成课文图片」** 分享。
+| 作品 | 文学灵感 | 关键词 |
+|---|---|---|
+| 取餐的背影 | 《背影》 | 温情、家人 |
+| 孔乙己的取餐码 | 《孔乙己》 | 人物、幽默 |
+| 从菜单墙到靠窗座 | 《从百草园到三味书屋》 | 童趣、观察 |
+| 故乡的那盏餐厅灯 | 《故乡》 | 记忆、友谊 |
+| 登楼观餐记 | 《岳阳楼记》 | 古风、见闻 |
+| 月光落在餐盘上 | 《荷塘月色》 | 深夜、独处 |
+| 夜场散席以后 | 《社戏》 | 热闹、友谊 |
+| 阿Q的点餐哲学 | 《阿Q正传》 | 自嘲、喜剧 |
+| 范进中了取餐号 | 《儒林外史》人物故事 | 幽默、荒诞 |
+| 误入取餐桃源 | 《桃花源记》 | 古风、奇遇 |
+| 陋桌铭 | 《陋室铭》 | 短章、风趣 |
+| 爱薯说 | 《爱莲说》 | 议论、分享 |
+| 今日出餐表 | 《出师表》 | 书信、趣谈 |
+| 春天的第一口 | 《春》 | 明朗、生活 |
+| 最后一根薯条的立场 | 《变色龙》 | 对话、反转 |
+| 微型餐盘观察记 | 《核舟记》 | 说明、细节 |
 
-> 网页版为静态演示：**不读取你的麦当劳账号订单，也不需要 MCP Token**。网页中的手动餐品输入与真实 MCP 订单接入是两条不同的使用路径。
+所有正文存放于 [`lessons.json`](lessons.json)。保留“文学语气”和巧妙的生活反差，不整段复制仍可能受版权保护的现代原著。餐品变量 `{main}`、`{side}`、`{drink}`、`{items}`、`{count}`、`{kinds}` 由订单替换。**没有课后习题。**
 
-![网页界面](images/screenshot.png)
+## 🔗 真实麦当劳 MCP：不只是离线玩具
 
-### 方法二：命令行离线体验
+除了网页体验，项目还通过官方麦当劳 MCP 的 **`order-list`** 只读工具获取真实历史订单。实际调用流程：
 
-需要 Python 3。进入仓库根目录后执行：
+```text
+用户授权并在本机配置 Token
+           │
+           ▼
+麦当劳 MCP Server ─ order-list (只读)
+           │
+           ▼
+解析最近有效订单 → 识别餐品、份数与套餐子项
+           │
+           ▼
+      生成文学课文
+           │
+           ├─ 直接显示终端输出
+           └─ 导出仅含餐品名称/数量的 JSON → 浏览器生成并分享
+```
+
+### 本地使用（Python 3.10+）
+
+无需安装任何依赖：
 
 ```bash
-# 直接看内置样例
 python mcd_chinese.py --demo
-
-# 自定义餐品
-python mcd_chinese.py --items "巨无霸,中薯条,可乐"
-
-# 指定课文（ID 可用 --list 查看）
-python mcd_chinese.py --items "板烧鸡腿堡,大薯条,雪碧" --lesson kongyiji
-
-# 查看全部课文
+python mcd_chinese.py --items "巨无霸,中薯条,可乐" --lesson beiying
 python mcd_chinese.py --list
-
-# 输出 Markdown 或 JSON
 python mcd_chinese.py --demo --md
 python mcd_chinese.py --demo --json
 ```
 
-运行上述命令**不需要 OpenAI API、DeepSeek API 或麦当劳 MCP Token**。
+### 使用真实订单
 
-## 真实麦当劳订单怎么接入？
-
-该功能在本地 Python 程序中运行，不是在静态网页上登录麦当劳账号。
-
-### 第一步：配置 Token
-
-从 **https://open.mcd.cn/mcp** 按官方流程申请 Token，并在本机设置环境变量 `MCD_MCP_TOKEN`：
-
-**macOS / Linux：**
+1. 从 [麦当劳 MCP 平台](https://open.mcd.cn/mcp) 按官方流程申请令牌。
+2. 在自己电脑的终端设置 `MCD_MCP_TOKEN` 环境变量，不要发在聊天或 Issue 里。
+3. 运行只读查询命令：
 
 ```bash
-export MCD_MCP_TOKEN="你的麦当劳MCP Token"
-```
+# macOS / Linux
+export MCD_MCP_TOKEN="你的令牌"
 
-**Windows PowerShell：**
+# Windows PowerShell 另用此命令：
+# $env:MCD_MCP_TOKEN="你的令牌"
 
-```powershell
-$env:MCD_MCP_TOKEN="你的麦当劳MCP Token"
-```
-
-**不要把真实 Token 写进仓库、代码、Issue、截图或提交记录。**
-
-### 第二步：读取订单并生成课文
-
-```bash
-# 读取最新一笔可解析的非取消订单（自动跳过已取消的）
 python mcd_chinese.py --mcp
 
-# 监测后续新订单，默认每 20 秒检查一次
-python mcd_chinese.py --watch
+# 需要在网页里分享时，只导出商品名称与数量：
+python mcd_chinese.py --mcp --export-web order-local.json
 ```
 
-`--watch` 首次启动会记录当前最新订单作为基线，不会马上重复输出历史订单；当发现新的订单 ID 时才生成课文。
+打开网页，选择「导入真实订单（脱敏 JSON）」，上传你刚刚生成的 `order-local.json`。**浏览器不会拿到 Token、原始订单号、门店、价格和个人信息。**
 
-### MCP 的实际作用
+也可以使用：
 
-```text
-麦当劳 MCP Server (https://mcp.mcd.cn)
-          |
-          | initialize / notifications/initialized
-          v
-    tools/call: order-list
-          |
-          v
-  读取订单餐品、处理套餐子项
-          |
-          v
-      选择课文模板
-          |
-          v
-  本地填入餐品 -> 输出课文
+```bash
+python mcd_chinese.py --watch --interval 30
 ```
 
-- **真实使用的工具**：`order-list`（只读）。
-- **不会调用的操作**：下单、支付、领取优惠券、兑换积分等写操作。
-- **订单隐私**：课文正文和分享图只使用餐品信息，不插入订单号、门店或下单时间；**命令行运行 `--mcp` 时可能在终端显示时间、门店、金额等订单摘要供本人核对**。`--debug` 会打印更详细的接口原始数据，请勿传播终端日志。
-- **验证边界**：项目文档记录了真实 Token 下的 MCP 握手、工具列表及返回结构联调；**带非空真实订单的完整端到端链路、真实下单触发的 `--watch`、以及接口能覆盖多久的历史订单，都仍未验证**。详见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md)。
+`--watch` 只处理启动后新增的订单，默认 30 秒检查一次；首次只记住当前最新订单，不会把历史订单误判为新单。停止请按 `Ctrl+C`。
 
-仓库包含脱敏的 [`mcp-config.example.json`](mcp-config.example.json)。其中凭据应使用**环境变量占位符**；各 MCP 客户端对环境变量替换的支持方式可能不同，请按对应客户端文档调整，而不要提交真实密钥。
+> **真实验证边界：** 本次重构针对 MCP 协议、订单结构、套餐和异常情况做了离线模拟测试，但**没有你的真实 Token，尚未在真实非空订单上完成重构版的端到端联调**。发布前请验证实际订单流程，详见 [`MCP_INTEGRATION.md`](MCP_INTEGRATION.md)。
 
-## 支持哪些课文？
+## 🧱 技术架构
 
-| 课文 | 归属风格 |
-| --- | --- |
-| 《背影》 | 深情散文 |
-| 《荷塘月色》 | 抒情散文 |
-| 《春》 | 抒情散文 |
-| 《从百草园到三味书屋》 | 童趣散文 |
-| 《孔乙己》 | 小说 |
-| 《故乡》 | 小说 |
-| 《社戏》 | 怀旧小说 |
-| 《阿Q正传》 | 讽刺小说 |
-| 《范进中举》 | 讽刺小说 |
-| 《岳阳楼记》 | 古文 |
-| 《桃花源记》 | 古文 |
-| 《陋室铭》 | 古文 |
-| 《爱莲说》 | 古文 |
-| 《出师表》 | 古文 |
-| 《核舟记》 | 古文 |
-| 《变色龙》 | 外国小说 |
+| 模块 | 文件 | 职责 |
+|---|---|---|
+| 生成内核 | `engine.py` | 输入校验、分类、原创新课文渲染、稳定课号、脱敏输出 |
+| MCP 客户端 | `mcd_mcp.py` | Streamable HTTP / JSON-RPC、只读 `order-list`、订单解析 |
+| CLI | `mcd_chinese.py` | 命令行入口、真实订单、监控和 JSON 导出 |
+| 课文库 | `lessons.json` | 16 篇独立原创文学小品 |
+| 餐品词典 | `catalog.json` | 前后端统一的餐品分类规则与快捷选项 |
+| 网页源码 | `web/template.html`, `web/style.css`, `web/app.js` | 手机友好 UI、文本安全渲染、PNG 导出、导入文件 |
+| 构建 | `build_web.py` | 数据与资源注入单文件网页 |
+| 演示产物 | `docs/index.html` | GitHub Pages 静态首页，单文件自包含 |
+| 自动化测试 | `tests/` | Python 生成/MCP/构建/浏览器测试 |
+| AI Skill | `SKILL.md` | Agent 的触发方式、命令、权限界限 |
 
-这里只列出模板主题和风格。具体文本见 `lessons.json`；项目产出为**文学戏仿与原创改写内容**，不代表原作者立场。
-
-## 技术架构
-
-```text
-mcd-chinese-class/
-├── README.md                 # 本文档：介绍、体验、安装、使用
-├── CONTEST_DECLARATION.md    # 官方参赛声明
-├── MCP_INTEGRATION.md        # MCP 工具、流程、验证边界
-├── mcp-config.example.json  # 不含真实 Token 的示例配置
-├── SKILL.md                  # 给 AI Agent 的使用约定
-├── mcd_chinese.py            # 订单分类、模板选择、课文生成、CLI
-├── mcd_mcp.py                # 只读 MCP 客户端
-├── COPYRIGHT.md              # 16 篇课文的来源、权利状态与风险清单
-├── lessons.json              # 16 篇课文模板
-├── build_web.py              # 根据模板构建静态网页
-├── web/template.html         # 页面源码（修改页面请编辑这里）
-├── docs/index.html           # GitHub Pages 实际部署文件（构建产物）
-├── images/                   # 项目演示图片
-├── package.json              # 浏览器测试依赖（仅 playwright-core）
-├── .github/workflows/        # CI：语法、生成、构建、静态规则
-└── tests/
-    ├── check_static.py       # 静态合规检查（不联网，任何平台可跑）
-    ├── test_mcd_chinese.py   # Python 功能测试
-    ├── browser.js            # 跨平台浏览器启动器
-    ├── test_web.js           # 浏览器端到端
-    └── test_live.js          # 线上演示页验证
-```
-
-### 修改与构建
-
-- **修改课文**：编辑 `lessons.json`；尽量保留模板 JSON 的数据结构。
-- **修改网页**：编辑 `web/template.html`，**不要只修改 `docs/index.html`**。
-- **重新生成网页**：
+### 重新构建和测试
 
 ```bash
 python build_web.py
+python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-- **运行 Python 测试**：
+浏览器端到端测试需额外安装 **仅供测试使用** 的 Playwright（不影响项目运行零依赖）：
 
 ```bash
-python tests/test_mcd_chinese.py
+python -m pip install playwright
+python -m playwright install chromium
+python tests/browser_smoke.py
 ```
 
-**测试分三层，且区分 PASS / FAIL / SKIP：**
+## 🛡 隐私与安全
 
-```bash
-python tests/check_static.py        # 静态合规检查（不联网，任何平台可跑）
-python tests/test_mcd_chinese.py    # 功能测试：生成、解析、异常处理
-node   tests/test_web.js            # 浏览器端到端（需要浏览器）
-node   tests/test_live.js           # 线上演示页验证（需要网络）
-```
+- MCP Token 只在本地环境变量中读取，未被写进网页、JSON 导出物或仓库。
+- MCP 客户端**只允许调用 `order-list`**，没有下单、支付、领券、积分兑换等接口。
+- 服务错误默认不打印原始响应；生成文件只含商品名和数量。
+- 网页使用 DOM `textContent` 输出用户内容，避免通过 `innerHTML` 注入脚本；数据内联时转义危险脚本分隔符。
+- 无遥测，无第三方 CDN，无后端服务器。详见 [`SECURITY.md`](SECURITY.md)。
 
-- **浏览器测试跨平台**：`tests/browser.js` 会依次尝试系统 Edge、系统 Chrome、
-  playwright 自带 chromium，不写死任何绝对路径。用 `npm install` 装依赖
-  （`package.json` 里只有 `playwright-core` 一个 devDependency）。
-- **没有可用浏览器或网络时报告 SKIP 并返回退出码 2** —— SKIP **不算通过**，
-  报告里会单独列出。
-- 联网比对参赛声明那一条在没有 `gh` 或断网时会 SKIP，不会造成误报失败。
-- CI 配置在 [`.github/workflows/tests.yml`](.github/workflows/tests.yml)：
-  语法、模板、课文生成、网页构建和静态规则在每个平台都会跑；浏览器测试按环境可用性执行。
+## 🏆 比赛与合规
 
-## 项目特点与设计选择
+本项目参与 [麦当劳程序员创意开发大赛](https://github.com/M-China/mcd-developer-innovation-challenge)：
 
-这个项目刻意**不接大模型生成正文**：现有文本采用确定性模板拼接，便于离线试玩、快速响应、零模型调用成本和重复验证。MCP 负责获取真实订单数据，模板引擎负责创意转化。
+- 参赛申请：[Issue #716](https://github.com/M-China/mcd-developer-innovation-challenge/issues/716)
+- 活动规则：[activityGuidelines.md](https://github.com/M-China/mcd-developer-innovation-challenge/blob/main/activityGuidelines.md)
+- 必需文件：[参赛声明](CONTEST_DECLARATION.md) · [MCP 集成说明](MCP_INTEGRATION.md) · [脱敏配置](mcp-config.example.json)
+- 未申报 WorkBuddy 专项，也没有伪造 WorkBuddy 集成证明。
 
-对于只是想体验的用户，直接打开网页就够了；对于有麦当劳 MCP Token 的开发者，可以从实际订单生成课文；对于 Agent，还可以按照 [SKILL.md](SKILL.md) 调用命令行。
+比赛奖项和排名按 **官方 Star 排名与资格审核** 认定。零 Star 项目不进入排行榜，只有进入最终榜单且合规审核通过才有获奖资格；本仓库不包含刷 Star 或榜单操作工具。
 
-## 参赛信息与说明
+**知识产权说明：** 本仓库网页及代码采用 MIT 许可证。原创文学戏仿文本仅提供文学灵感来源说明，不声明拥有原作者作品的版权。作品上线前请由仓库维护者复查涉及的文字、图像和品牌素材，合理权利人可通过 [Issues](https://github.com/miaoyhcat/mcd-chinese-class/issues) 联系。
 
-- **赛事**：[麦当劳程序员创意开发大赛](https://github.com/M-China/mcd-developer-innovation-challenge)
-- **规则**：[活动规则](https://github.com/M-China/mcd-developer-innovation-challenge/blob/main/activityGuidelines.md)
-- **报名**：[Issue #716](https://github.com/M-China/mcd-developer-innovation-challenge/issues/716)
-- **项目定位**：个人原创参赛作品，**不是麦当劳官方产品**。
+## ❤️ 适合谁
 
-**版权提醒：** 经典文学作品的原作、译文或改写可能仍受版权保护；标注“戏仿”或“非商业”不代表自动获得使用许可。公开使用和传播前应逐篇核查文本来源、授权或合理使用依据，必要时将接近原文的大段内容重写为具有独立表达的原创段落。
+- 想把一顿麦当劳吃出一点文学感的人；
+- 喜欢文学戏仿、段子和轻量互动网页的人；
+- 想学习只读 MCP、确定性模板生成及静态网页构建的开发者。
 
-16 篇课文的逐篇来源、权利状态、风险点与**尚未核实的事项**，记录在 [COPYRIGHT.md](COPYRIGHT.md)。该文件明确说明：这不是法律意见，且**未做逐字重合率测量**。
-
-**隐私提醒：** 不要将麦当劳 MCP Token、真实订单截图、调试日志或其他个人信息上传到公开仓库。商品信息、价格与供应情况以麦当劳官方渠道为准。
-
-## 开源协议
-
-项目代码以 [MIT License](LICENSE) 发布。**该许可证不自动涵盖可能涉及第三方权利的文学原文、译文、商标或其他素材。**
+如果你觉得有趣，欢迎分享体验链接或提出改进建议。感谢每一次真实的使用与反馈。

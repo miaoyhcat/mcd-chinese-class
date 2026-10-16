@@ -1,499 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>麦门语文课 · 把你的订单改写成语文课本</title>
-<meta name="description" content="选几样麦当劳，挑一篇课文，看你的订单被改写成《背影》《孔乙己》《岳阳楼记》。不需要 Token，打开就能玩。">
-<meta property="og:type" content="website">
-<meta property="og:title" content="麦门语文课 · 把你的订单改写成语文课本">
-<meta property="og:description" content="选几样麦当劳，挑一篇课文，看你的订单被改写成《背影》《孔乙己》《岳阳楼记》。">
-<!-- og:image 用仓库里的 images/demo.png（GitHub raw，已确认可达）。
-     注意不能用 Pages 域名下的路径 —— images/ 不在 docs/ 里，那个地址是 404。 -->
-<meta property="og:image" content="https://raw.githubusercontent.com/miaoyhcat/mcd-chinese-class/main/images/demo.png">
-<meta property="og:url" content="https://miaoyhcat.github.io/mcd-chinese-class/">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
-<style>
-:root{
-  --bg:#F7F5F0; --paper:#FFFDF8; --ink:#1E2128; --dim:#5C6169; --mute:#8B8F99;
-  --gold:#B08A2E; --red:#9E3B32; --line:rgba(30,33,40,.13);
-  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
-  --sans:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
-}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;
-  padding:clamp(24px,4.5vw,56px) clamp(14px,3.5vw,36px) 72px}
-a{color:inherit;text-decoration:none}
-::selection{background:rgba(176,138,46,.26)}
-.wrap{max-width:760px;margin:0 auto}
-
-/* ── 抬头 ── */
-header{text-align:center;margin-bottom:clamp(22px,3.5vw,36px)}
-h1{font-family:var(--serif);font-size:clamp(24px,5vw,40px);font-weight:700;letter-spacing:.1em}
-.tagline{margin-top:10px;font-size:clamp(12.5px,1.7vw,14px);color:var(--dim);letter-spacing:.08em}
-.tagline b{color:var(--gold);font-weight:500}
-
-/* ── 控制面板 ── */
-.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;
-  padding:clamp(16px,2.6vw,24px);margin-bottom:clamp(16px,2.4vw,22px)}
-.lbl{font-size:11px;letter-spacing:.3em;color:var(--mute);margin-bottom:11px}
-.lbl:not(:first-child){margin-top:18px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{font-size:13px;padding:7px 14px;border-radius:99px;border:1px solid var(--line);
-  background:transparent;color:var(--dim);cursor:pointer;transition:all .2s;font-family:inherit}
-.chip:hover{border-color:var(--gold);color:var(--gold)}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chip.lesson{font-family:var(--serif);font-size:13.5px}
-.chip.lesson.on{background:var(--gold);border-color:var(--gold)}
-
-input[type=text]{width:100%;margin-top:11px;padding:11px 14px;font-size:13.5px;
-  border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);
-  font-family:inherit}
-input[type=text]:focus{outline:none;border-color:var(--gold)}
-.hint{margin-top:9px;font-size:11.5px;color:var(--mute)}
-
-/* ── 按钮 ── */
-.acts{display:flex;gap:10px;margin:clamp(18px,2.6vw,24px) 0;flex-wrap:wrap}
-.btn{flex:1;min-width:130px;padding:14px 20px;border-radius:11px;font-size:14.5px;
-  letter-spacing:.1em;cursor:pointer;border:none;font-family:inherit;transition:all .22s}
-.btn.pri{background:var(--ink);color:#fff}
-.btn.pri:hover{background:var(--gold)}
-.btn.sec{background:transparent;border:1px solid var(--line);color:var(--dim);flex:0 0 auto;min-width:96px}
-.btn.sec:hover{border-color:var(--gold);color:var(--gold)}
-
-/* ── 课文卡片 ── */
-#lesson{background:var(--paper);border:1px solid var(--line);border-radius:16px;
-  padding:clamp(24px,4.5vw,52px) clamp(18px,4vw,56px);
-  box-shadow:0 14px 44px rgba(30,33,40,.07);display:none}
-#lesson.show{display:block}
-.lessno{text-align:center;font-size:11px;letter-spacing:.34em;color:var(--mute);margin-bottom:22px}
-.title{text-align:center;font-family:var(--serif);font-size:clamp(24px,4.4vw,34px);
-  font-weight:700;letter-spacing:.18em}
-.author{text-align:center;margin-top:9px;font-size:13.5px;color:var(--dim);letter-spacing:.14em}
-.style-tag{text-align:center;margin-top:7px;font-size:11.5px;color:var(--gold);letter-spacing:.2em}
-.note{text-align:center;margin-top:5px;font-size:11.5px;color:var(--mute);letter-spacing:.1em}
-.rule{height:1px;background:var(--line);margin:clamp(20px,3.4vw,32px) 0}
-.body p{font-family:var(--serif);font-size:clamp(14.5px,2vw,16px);line-height:2.15;
-  text-indent:2em;margin-bottom:.9em;text-align:justify}
-.body p.open{text-indent:2em}   /* 首段不再特殊着色：红在有的课文里指原文、有的指改写，容易误解 */
-.body p.end{color:var(--dim);font-style:italic}
-.theend{margin-top:clamp(20px,3vw,30px);text-align:center;font-family:var(--serif);
-  font-size:12px;letter-spacing:.62em;color:var(--mute)}
-.foot{margin-top:clamp(22px,3.4vw,32px);padding-top:16px;border-top:1px solid var(--line);
-  font-size:11.5px;color:var(--mute);text-align:center;letter-spacing:.06em}
-.foot b{color:var(--dim);font-weight:500}
-
-/* ── 页脚 ── */
-footer{margin-top:clamp(30px,5vw,52px);text-align:center;font-size:12px;color:var(--mute);line-height:2.1}
-footer a{color:var(--gold)}
-.toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,20px);opacity:0;
-  background:var(--ink);color:#fff;font-size:13px;padding:11px 22px;border-radius:99px;
-  transition:all .3s;pointer-events:none}
-.toast.on{opacity:1;transform:translate(-50%,0)}
-@media(max-width:600px){
-  .btn{min-width:0}
-  .btn.sec{flex:1}
-}
-</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f7f2e7">
+<meta name="description" content="麦门语文课：一份餐品清单，写成一篇原创文学戏仿。16 种文学风格，免费离线生成，还能导出高清课文图片。">
+<meta property="og:title" content="麦门语文课 · 今日这单，值得一篇课文">
+<meta property="og:description" content="点几样餐品，生成专属课文。离线可玩，接入麦当劳 MCP 可导入真实订单。">
+<title>麦门语文课 | 今日这单，值得一篇课文</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23b74135'/%3E%3Ctext x='50' y='70' text-anchor='middle' font-size='67'%3E📖%3C/text%3E%3C/svg%3E">
+<style>/*__CSS__*/</style>
 </head>
 <body>
-<div class="wrap">
-
-  <header>
-    <h1>麦门语文课</h1>
-    <div class="tagline">选几样麦当劳，挑一篇课文，<b>看你的订单被改写成什么</b></div>
-  </header>
-
-  <div class="panel">
-    <div class="lbl">点 你 吃 了 什 么</div>
-    <div class="chips" id="foods"></div>
-    <input type="text" id="custom" placeholder="也可以直接打字，用逗号分隔：巨无霸, 中薯条, 可乐" autocomplete="off">
-    <div class="hint" id="picked">当前订单：巨无霸、中薯条、可乐</div>
-
-    <div class="lbl">挑 一 篇 课 文</div>
-    <div class="chips" id="lessons"></div>
+<header class="topbar">
+ <a class="brand" href="#top" aria-label="麦门语文课首页"><span class="brand-icon">麦</span><span>麦门语文课<small>THE LITERARY ORDER</small></span></a>
+ <nav aria-label="主导航"><a href="#studio">开始创作</a><a href="#about">关于项目</a><a class="nav-github" href="https://github.com/miaoyhcat/mcd-chinese-class" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></nav>
+</header>
+<main id="top">
+<section class="hero">
+ <div class="hero-copy">
+  <p class="eyebrow"><span class="red-dot"></span> 原创文学戏仿 · 2026 程序员创意开发大赛参赛项目</p>
+  <h1>今日这单，<br><em>值得一篇课文。</em></h1>
+  <p class="hero-intro">一份普通的餐品清单，写出一本正经的语文课本。<br class="desktop-only">不讲大道理，认真地开个文学玩笑。</p>
+  <div class="hero-actions"><a class="button button-primary" href="#studio">开始创作 <span aria-hidden="true">↗</span></a><a class="text-link" href="#how">了解怎么玩 <span aria-hidden="true">↓</span></a></div>
+  <div class="hero-facts"><span><b>16</b> 篇原创课文</span><i></i><span><b>0</b> 付费 API</span><i></i><span><b>100%</b> 本地生成</span></div>
+ </div>
+ <div class="hero-art" aria-hidden="true">
+  <div class="hero-art-circle circle-one"></div><div class="hero-art-circle circle-two"></div>
+  <div class="floating-ticket"><span>ORDER TICKET</span><strong>NO. 016</strong><div class="ticket-dash"></div><span>今日文学配方</span><p>巨无霸 × 温情 × 一点点荒诞</p><div class="barcode">||||| |||| |||||| | |||</div></div>
+  <div class="floating-note">读完这篇，<br>记得趁热吃。</div>
+  <span class="art-cross">✳</span>
+ </div>
+</section>
+<section id="how" class="steps-section" aria-label="三步生成">
+ <div class="step"><span class="step-index">01</span><strong>挑餐品</strong><span>点选或输入，也可导入 MCP 订单</span></div>
+ <div class="step"><span class="step-index">02</span><strong>选文风</strong><span>在十六篇文学小品中挑一篇</span></div>
+ <div class="step"><span class="step-index">03</span><strong>带走课文</strong><span>复制全文，或生成高清分享图片</span></div>
+</section>
+<section id="studio" class="studio-section">
+ <div class="section-heading"><div><p class="section-kicker">LITERARY STUDIO / 01</p><h2>你的麦门文学实验室</h2></div><span class="section-mark">✳</span></div>
+ <div class="workspace">
+  <div class="controls">
+   <div class="control-card">
+    <div class="control-heading"><span class="count-number">01</span><div><h3>先选今天吃什么</h3><p>点选常见餐品，或者自己写一份</p></div></div>
+    <div id="foodChips" class="food-chips" aria-label="餐品列表"></div>
+    <label for="customInput" class="field-label">手动输入餐品（可选）</label>
+    <textarea id="customInput" rows="2" maxlength="5000" placeholder="例如：巨无霸、中薯条、可乐（输入后优先使用这里的内容）"></textarea>
+    <p class="field-help">用逗号、顿号或换行分隔。填写时将覆盖上方点选；清空即可恢复点选。</p>
+    <div class="import-area"><input id="importFile" type="file" accept=".json,application/json" hidden><button id="importButton" class="import-button" type="button"><span aria-hidden="true">↥</span> 导入真实订单（脱敏 JSON）</button><span class="tiny-muted">需要本地 MCP 命令行生成</span></div>
+    <div id="orderSummary" class="order-summary" aria-live="polite"></div>
+   </div>
+   <div class="control-card">
+    <div class="control-heading"><span class="count-number">02</span><div><h3>选一篇文学小品</h3><p>保留文学神韵，写自己的故事</p></div></div>
+    <div id="lessonChips" class="lesson-grid" role="group" aria-label="课文风格选择"></div>
+    <p class="field-help">文章是原创戏仿，并非原著复制；不同作品有不同情节。</p>
+   </div>
+   <div class="controls-actions"><button id="generateButton" type="button" class="button button-primary wide">生成我的课文 <span aria-hidden="true">✦</span></button><button id="surpriseButton" type="button" class="button button-subtle">换篇课文 ↻</button></div>
+   <p id="error" class="error" role="alert" hidden></p>
   </div>
-
-  <div class="acts">
-    <button class="btn pri" id="go">生 成 课 文</button>
-    <button class="btn sec" id="again">换一篇</button>
-    <button class="btn sec" id="copy">复制</button>
-    <button class="btn sec" id="img">生成课文图片</button>
+  <div class="reader-wrap">
+   <div class="reader-bar"><div><span class="reader-dot"></span> 我的语文课本</div><span>LIVE PREVIEW</span></div>
+   <article id="reader" class="reader" aria-live="polite" aria-label="生成课文">
+    <div class="reader-topline"><span id="lessonNumber">第 001 课</span><span>麦门语文 · 手作文学</span></div>
+    <p class="reader-mark">课 / 文 / 精 / 选</p>
+    <h2 id="lessonTitle">等待生成</h2>
+    <p id="lessonGenre" class="reader-subtitle"></p>
+    <p id="lessonInspiration" class="reader-inspiration"></p>
+    <div class="ornament"><span>✳</span></div>
+    <div id="lessonBody" class="reader-body"></div>
+    <p class="reader-end">— 课 文 完 —</p>
+    <div class="reader-footer"><span id="lessonItems"></span><small>原创文学戏仿 · 非官方产品</small></div>
+   </article>
+   <div class="reader-actions"><button id="copyButton" type="button" class="button button-dark">复制全文 <span aria-hidden="true">↗</span></button><button id="imageButton" type="button" class="button button-light">保存课文图片 ↓</button></div>
+   <p class="privacy-hint"><span aria-hidden="true">♧</span> 图片与文字在本机生成。不会附带订单号、位置或付款信息。</p>
   </div>
-
-  <article id="lesson"></article>
-
-  <footer>
-    麦门语文课 · 麦当劳程序员节创意开发大赛参赛作品<br>
-    非麦当劳官方产品 · 课文均为戏仿，与原作无关<br>
-    <a href="https://github.com/OWNER/REPO">GitHub 仓库</a>
-  </footer>
-
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-/* 课文模板由 lessons.json 生成，构建时内联进来（见 build_web.py） */
-const LESSONS = /*__LESSONS__*/;
-const FALLBACK = /*__FALLBACKS__*/;
-
-/* ── 与 mcd_chinese.py 保持一致的分类逻辑 ──
-   这几张词表由 build_web.py 从 mcd_chinese.py 注入，不在网页这边单独维护，
-   免得两边慢慢漂移（之前就漂过一次）。 */
-const DRINK_EXACT = /*__DRINK_EXACT__*/;
-const DRINK_WORDS = /*__DRINK_WORDS__*/;
-const DRINK_SUFFIX = /*__DRINK_SUFFIX__*/;
-const SIDE_WORDS  = /*__SIDE_WORDS__*/;
-const SIDE_SUFFIX = /*__SIDE_SUFFIX__*/;
-const MAIN_MARKERS = /*__MAIN_MARKERS__*/;
-const SIZE_PREFIX = /*__SIZE_PREFIX__*/;
-
-const stripSize = s => { for (const p of SIZE_PREFIX)
-  if (s.startsWith(p) && s.length > p.length + 1) return s.slice(p.length); return s; };
-
-/* 三级判定：整名 → 子串 → 后缀。
-   只用子串会误伤：旧版 DRINK_WORDS 里有「水」，「水果派」就被当成了饮品。 */
-function isDrink(name){
-  if (DRINK_EXACT.includes(name)) return true;
-  if (DRINK_WORDS.some(w => name.includes(w))) return true;
-  return DRINK_SUFFIX.some(s => name.endsWith(s));
-}
-function isSide(name){
-  if (SIDE_WORDS.some(w => name.includes(w))) return true;
-  return SIDE_SUFFIX.some(s => name.endsWith(s));
-}
-
-function classify(items){
-  // 与 mcd_chinese.py 的 classify() 保持一致：三者互不重叠
-  const drinks = items.filter(isDrink);
-  const mains = [], sides = [];
-  for (const i of items){
-    if (drinks.includes(i)) continue;
-    if (MAIN_MARKERS.some(w => i.includes(w))) mains.push(i);
-    else sides.push(i);
-  }
-  if (!mains.length){
-    const first = items.find(i => !drinks.includes(i)) ?? items[0];
-    mains.push(first);
-    for (let k = sides.length - 1; k >= 0; k--) if (sides[k] === first) sides.splice(k, 1);
-  }
-  return {mains, sides, drinks};
-}
-
-function fields(items){
-  const {mains, sides, drinks} = classify(items);
-  const uniq = [...new Set(items)];
-  return {
-    main: mains[0],
-    side: sides.length ? stripSize(sides[0]) : FALLBACK.side,
-    drink: drinks.length ? stripSize(drinks[0]) : FALLBACK.drink,
-    items: uniq.join("、"),
-    count: items.length,
-    store: FALLBACK.store,
-  };
-}
-
-const fill = (t, f) => t.replace(/\{(\w+)\}/g, (m, k) => (k in f ? f[k] : m));
-
-function lessonNumber(items){
-  // 必须和 Python 的 lesson_number() 结果一致。
-  // 注意用 for...of + codePointAt(0) 走码点 —— charCodeAt 取的是 UTF-16 码元，
-  // 遇到 emoji 这类非 BMP 字符会被拆成两个代理项，算出来的课号和 Python 对不上。
-  let h = 0;
-  for (const ch of items.join("|")) h = (h * 31 + ch.codePointAt(0)) % 999983;
-  return h % 999 + 1;
-}
-
-function compose(items, lesson){
-  const f = fields(items);
-  return {
-    no: lessonNumber(items),
-    title: lesson.title, author: lesson.author,
-    tag: lesson.tag || "",
-    opening: fill(lesson.opening, f),
-    body: lesson.body.map(p => fill(p, f)),
-    ending: lesson.ending ? fill(lesson.ending, f) : "",
-    items,
-  };
-}
-
-/* ── 状 态 ── */
-const FOODS = ["巨无霸","麦辣鸡腿堡","板烧鸡腿堡","双层吉士堡","麦香鱼",
-               "中薯条","麦乐鸡","鸡翅","苹果派","玉米杯",
-               "可乐","雪碧","芬达","拿铁","橙汁"];
-const picked = new Set(["巨无霸","中薯条","可乐"]);
-let lessonIdx = 0;
-
-const $ = id => document.getElementById(id);
-
-/* ── 渲染选择区 ── */
-FOODS.forEach(name => {
-  const b = document.createElement("button");
-  b.className = "chip" + (picked.has(name) ? " on" : "");
-  b.textContent = name;
-  b.onclick = () => {
-    picked.has(name) ? picked.delete(name) : picked.add(name);
-    b.classList.toggle("on");
-    updPicked();
-  };
-  $("foods").appendChild(b);
-});
-
-LESSONS.forEach((l, i) => {
-  const b = document.createElement("button");
-  b.className = "chip lesson" + (i === 0 ? " on" : "");
-  b.textContent = `《${l.title}》`;
-  b.onclick = () => {
-    lessonIdx = i;
-    [...$("lessons").children].forEach((c, j) => c.classList.toggle("on", j === i));
-    if ($("lesson").classList.contains("show")) render();
-  };
-  $("lessons").appendChild(b);
-});
-
-function currentItems(){
-  const typed = $("custom").value.trim();
-  if (typed) return typed.replace(/，/g, ",").split(",").map(s => s.trim()).filter(Boolean);
-  return [...picked];
-}
-
-function updPicked(){
-  const it = currentItems();
-  $("picked").textContent = "当前订单：" + (it.length ? it.join("、") : "（还没选，默认给一份巨无霸）");
-}
-
-$("custom").addEventListener("input", updPicked);
-
-/* ── 生 成 ── */
-
-/* 一律用 createElement + textContent 建节点。
-   饭品名是从输入框来的、课文正文是从模板来的，都不能拼进 innerHTML ——
-   拼了就等于把注入入口敞开。textContent 天然免疫，比手写转义可靠。 */
-function el(tag, cls, text){
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
-}
-
-function render(){
-  let items = currentItems();
-  if (!items.length) items = ["巨无霸","中薯条","可乐"];
-  const d = compose(items, LESSONS[lessonIdx]);
-
-  const box = $("lesson");
-  box.textContent = "";                       // 清空，不用 innerHTML
-  box.classList.remove("show");
-
-  box.appendChild(el("div", "lessno",
-    `麦门语文课 · 第 ${String(d.no).padStart(3, "0")} 课`));
-  box.appendChild(el("div", "title", d.title));
-  box.appendChild(el("div", "author", d.author));
-  if (d.tag) box.appendChild(el("div", "style-tag", d.tag));
-  box.appendChild(el("div", "note", "（根据你的订单改编）"));
-  box.appendChild(el("div", "rule"));
-
-  const body = el("div", "body");
-  body.appendChild(el("p", "open", d.opening));
-  d.body.forEach(p => body.appendChild(el("p", null, p)));
-  if (d.ending) body.appendChild(el("p", "end", d.ending));
-  box.appendChild(body);
-
-  box.appendChild(el("div", "theend", "课 文 完"));
-
-  const foot = el("div", "foot");
-  foot.appendChild(document.createTextNode("本课订单："));
-  foot.appendChild(el("b", null, d.items.join("、")));
-  box.appendChild(foot);
-
-  box.classList.add("show");
-}
-
-function toast(msg){
-  const t = $("toast");
-  t.textContent = msg; t.classList.add("on");
-  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 1800);
-}
-
-$("go").onclick = render;
-
-$("again").onclick = () => {
-  lessonIdx = (lessonIdx + 1) % LESSONS.length;
-  [...$("lessons").children].forEach((c, j) => c.classList.toggle("on", j === lessonIdx));
-  render();
-};
-
-/* 复制的内容和页面显示保持一致：标题/作者/文体 + 正文 + 结尾 */
-function plainText(d){
-  const L = [`《${d.title}》`, d.author];
-  if (d.tag) L.push(d.tag);
-  L.push("", d.opening, "");
-  d.body.forEach(p => L.push(p, ""));
-  if (d.ending) L.push(d.ending, "");
-  L.push("课文完", "", `本课订单：${d.items.join("、")}`,
-         "", "—— 麦门语文课 · 把麦当劳订单改写成语文课本");
-  return L.join("\n");
-}
-
-function currentDoc(){
-  if (!$("lesson").classList.contains("show")) return null;
-  let items = currentItems();
-  if (!items.length) items = ["巨无霸","中薯条","可乐"];
-  return compose(items, LESSONS[lessonIdx]);
-}
-
-$("copy").onclick = async () => {
-  const d = currentDoc();
-  if (!d) { toast("先生成一篇吧"); return; }
-  const txt = plainText(d);
-  try {
-    await navigator.clipboard.writeText(txt);
-    toast("已复制，去发给朋友吧");
-  } catch {
-    // 老浏览器 / 非安全上下文：退回到选区复制
-    const ta = document.createElement("textarea");
-    ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand("copy"); toast("已复制"); }
-    catch { toast("复制失败，请手动选中"); }
-    document.body.removeChild(ta);
-  }
-};
-
-/* ── 导出课文图片 ──
-   全部在浏览器里用 Canvas 画，不请求任何外部服务 —— 订单内容不出本机。
-   竖版 1080 宽，适配手机分享；太长就分页，避免把字缩到看不清。 */
-const IMG = {
-  w: 1080, pad: 92, maxH: 3600,
-  noSize: 24, titleSize: 68, authorSize: 32, tagSize: 27,
-  bodySize: 35, lineH: 64, paraGap: 22, footSize: 25,
-  bg: "#FBF9F4", ink: "#1E2128", dim: "#5C6169", mute: "#8B8F99",
-  gold: "#B08A2E", red: "#9E3B32",
-  serif: '"Noto Serif SC","Songti SC","SimSun",serif',
-  sans: '-apple-system,"PingFang SC","Microsoft YaHei",sans-serif',
-};
-
-function wrapCJK(ctx, text, maxW, firstIndent){
-  // 中文按字符断行；for...of 走码点，emoji 不会被拆成半个
-  const out = [];
-  let cur = "";
-  let limit = maxW - (firstIndent || 0);
-  for (const ch of text){
-    const t = cur + ch;
-    if (ctx.measureText(t).width > limit && cur){
-      out.push(cur); cur = ch; limit = maxW;
-    } else cur = t;
-  }
-  if (cur) out.push(cur);
-  return out.length ? out : [""];
-}
-
-function buildPages(d){
-  const c = document.createElement("canvas");
-  const ctx = c.getContext("2d");
-  const maxW = IMG.w - IMG.pad * 2;
-
-  ctx.font = `${IMG.bodySize}px ${IMG.serif}`;
-  const indent = IMG.bodySize * 2;
-  const blocks = [];
-  blocks.push({ kind: "p", lines: wrapCJK(ctx, d.opening, maxW, indent), open: true });
-  d.body.forEach(t => blocks.push({ kind: "p", lines: wrapCJK(ctx, t, maxW, indent) }));
-  if (d.ending) blocks.push({ kind: "p", lines: wrapCJK(ctx, d.ending, maxW, indent), end: true });
-
-  // 按 maxH 切页
-  const headH = IMG.pad + IMG.noSize + 30 + IMG.titleSize + 26 + IMG.authorSize
-              + (d.tag ? IMG.tagSize + 16 : 0) + 40 + 30;
-  const footH = 26 + IMG.lineH + IMG.pad;
-  const pages = [];
-  let cur = [], used = headH;
-  for (const b of blocks){
-    let h = b.lines.length * IMG.lineH + IMG.paraGap;
-    if (used + h + footH > IMG.maxH && cur.length){ pages.push(cur); cur = []; used = headH; }
-    // 单段就超一页的极端情况：硬切
-    while (used + h + footH > IMG.maxH){
-      const room = Math.max(1, Math.floor((IMG.maxH - footH - used) / IMG.lineH));
-      cur.push({ ...b, lines: b.lines.slice(0, room), cut: true });
-      b = { ...b, lines: b.lines.slice(room), open: false };
-      h = b.lines.length * IMG.lineH + IMG.paraGap;
-      pages.push(cur); cur = []; used = headH;
-    }
-    cur.push(b); used += h;
-  }
-  if (cur.length || !pages.length) pages.push(cur);
-  return { pages, headH, footH, maxW, indent };
-}
-
-function drawPage(d, page, meta, idx, total){
-  const H = Math.min(IMG.maxH, meta.headH + page.reduce((s, b) =>
-    s + b.lines.length * IMG.lineH + IMG.paraGap, 0) + meta.footH + 40);
-  const cvs = document.createElement("canvas");
-  const S = 2;                                  // 2 倍分辨率，手机上更清晰
-  cvs.width = IMG.w * S; cvs.height = H * S;
-  const x = cvs.getContext("2d");
-  x.scale(S, S);
-  x.fillStyle = IMG.bg; x.fillRect(0, 0, IMG.w, H);
-  x.textBaseline = "top";
-  const cx = IMG.w / 2;
-  let y = IMG.pad;
-
-  x.fillStyle = IMG.mute; x.textAlign = "center";
-  x.font = `${IMG.noSize}px ${IMG.sans}`;
-  const noTxt = `麦门语文课 · 第 ${String(d.no).padStart(3, "0")} 课`
-              + (total > 1 ? `　(${idx}/${total})` : "");
-  x.fillText(noTxt, cx, y); y += IMG.noSize + 30;
-
-  x.fillStyle = IMG.ink; x.font = `700 ${IMG.titleSize}px ${IMG.serif}`;
-  x.fillText(d.title, cx, y); y += IMG.titleSize + 26;
-
-  x.fillStyle = IMG.dim; x.font = `${IMG.authorSize}px ${IMG.serif}`;
-  x.fillText(d.author, cx, y); y += IMG.authorSize + (d.tag ? 16 : 0);
-  if (d.tag){
-    x.fillStyle = IMG.gold; x.font = `${IMG.tagSize}px ${IMG.sans}`;
-    x.fillText(d.tag, cx, y); y += IMG.tagSize;
-  }
-  y += 44;
-
-  x.textAlign = "left"; x.font = `${IMG.bodySize}px ${IMG.serif}`;
-  for (const b of page){
-    x.fillStyle = b.end ? IMG.dim : IMG.ink;
-    b.lines.forEach((ln, i) => {
-      x.fillText(ln, IMG.pad + (i === 0 ? meta.indent : 0), y);
-      y += IMG.lineH;
-    });
-    y += IMG.paraGap;
-  }
-
-  y = H - IMG.pad - IMG.lineH;
-  x.textAlign = "center"; x.fillStyle = IMG.mute; x.font = `${IMG.footSize}px ${IMG.sans}`;
-  x.fillText(`本课订单：${d.items.join("、")}　·　麦门语文课`, cx, y);
-  // 注：只写餐品名，不带订单号、时间、门店等可识别信息
-  return cvs;
-}
-
-$("img").onclick = () => {
-  const d = currentDoc();
-  if (!d) { toast("先生成一篇吧"); return; }
-  const meta = buildPages(d);
-  const total = meta.pages.length;
-  let n = 0;
-  const next = () => {
-    if (n >= total) { toast(total > 1 ? `已导出 ${total} 张` : "已导出图片"); return; }
-    const cvs = drawPage(d, meta.pages[n], meta, n + 1, total);
-    cvs.toBlob(b => {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(b);
-      a.download = `麦门语文课_${d.title}${total > 1 ? `_${n + 1}` : ""}.png`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      n++; setTimeout(next, 500);      // 间隔一下，免得浏览器把连续下载拦掉
-    }, "image/png");
-  };
-  next();
-};
-
-updPicked();
-render();
-</script>
-</body>
-</html>
+ </div>
+</section>
+<section id="about" class="about-section">
+ <div><p class="section-kicker">MORE THAN A JOKE</p><h2>写给有点饿，<br>又有点喜欢文字的人。</h2></div>
+ <div class="about-body"><p>我们把点餐后的几分钟，变成一场小小的文学实验。每篇故事重新写作，餐品根据你的选择填入；不用登录、没有广告，也不调用付费大模型。</p><p>本项目另提供真实的麦当劳 MCP 只读接入：在自己的电脑运行命令行，读取最近有效订单，再导出只有餐品名称与数量的 JSON，交给网页继续创作。浏览器不会接收你的 Token。</p><a href="https://github.com/miaoyhcat/mcd-chinese-class" target="_blank" rel="noopener noreferrer">查看源代码与使用方法 ↗</a></div>
+</section>
+</main>
+<footer class="site-footer"><span class="footer-brand">麦门语文课 <small>MADE FOR WORDS & FOOD</small></span><p>独立开发 · 非麦当劳官方产品 · 所有作品为原创文学戏仿</p><a href="https://github.com/miaoyhcat/mcd-chinese-class/issues" target="_blank" rel="noopener noreferrer">反馈问题 ↗</a></footer>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>/*__DATA__*/</script>
+<script>/*__JS__*/</script>
+</body></html>
