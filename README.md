@@ -4,37 +4,78 @@
 
 ### 今日这单，值得一篇课文。
 
-**一份麦当劳订单，十六种原创文学戏仿。** 选好餐品，几秒钟生成自己的“语文课文”。
+**一份麦当劳订单，十六种原创文学戏仿。** 用官方 MCP 读取你的真实订单，几秒钟写成一篇“语文课文”；也可以在网页上离线体验。
 
-[🎬 **在线体验**](https://miaoyhcat.github.io/mcd-chinese-class/) · [📋 比赛报名 #716](https://github.com/M-China/mcd-developer-innovation-challenge/issues/716) · [🔎 MCP 技术实现](MCP_INTEGRATION.md)
+[🔎 **MCP 技术实现**](MCP_INTEGRATION.md) · [🎬 在线体验（网页版）](https://miaoyhcat.github.io/mcd-chinese-class/) · [📋 比赛报名 #716](https://github.com/M-China/mcd-developer-innovation-challenge/issues/716)
 
 </div>
 
-> **程序员创意开发大赛作品** · 无付费 API · Python 标准库 · 完整静态网页 · 只读 MCP · 本地隐私优先
+> **程序员创意开发大赛作品** · 无付费 API · Python 标准库 · 只读 MCP · 本地隐私优先 · 附加完整静态网页
 >
 > 本项目非麦当劳官方产品。文学戏仿文章为独立创作，并非原著文字替换或官方教材。
 
-## ✨ 三步开始
+## 🔗 接入真实麦当劳 MCP
 
-1. **挑餐品**：点击巨无霸、薯条、可乐等快捷选项，也能输入自己的餐品。
-2. **选课文**：从十六篇原创文学小品中挑风格；每篇都有独立的小故事。
-3. **带走课文**：一键复制全文，或导出适合手机分享的高清 PNG 图片；长文按页导出。
+项目通过官方麦当劳 MCP 的 **`order-list`** 只读工具读取真实历史订单，把餐品名、份数与套餐子项解析出来后生成课文。实际调用流程：
 
-**最快体验：直接点击 [网页演示](https://miaoyhcat.github.io/mcd-chinese-class/)，无需账号、Token 或安装。** 网页仅在本地运算，没有广告、远程 AI 请求或第三方追踪。
+```text
+用户授权并在本机配置 Token
+           │
+           ▼
+麦当劳 MCP Server ─ order-list (只读)
+           │
+           ▼
+解析最近有效订单 → 识别餐品、份数与套餐子项
+           │
+           ▼
+      生成文学课文
+           │
+           ├─ 直接显示终端输出
+           └─ 导出仅含餐品名称/数量的 JSON → 网页生成并分享
+```
 
-## 📷 页面预览
+### 1. 申请令牌并运行（Python 3.10+）
 
-![麦门语文课桌面版界面](assets/preview-desktop.jpg)
+1. 从 [麦当劳 MCP 平台](https://open.mcd.cn/mcp) 按官方流程申请令牌。
+2. 在自己电脑的终端设置 `MCD_MCP_TOKEN` 环境变量，不要发在聊天或 Issue 里。
+3. 运行只读查询命令：
 
-<details><summary>📱 查看手机端截图</summary>
+```bash
+# macOS / Linux
+export MCD_MCP_TOKEN="你的令牌"
 
-![麦门语文课手机端](assets/preview-mobile.jpg)
+# Windows PowerShell 另用此命令：
+# $env:MCD_MCP_TOKEN="你的令牌"
 
-</details>
+python mcd_chinese.py --mcp
 
-项目的前端源码在 `web/`，成品 `docs/index.html` 为独立单文件，可直接由 GitHub Pages 托管。
+# 需要在网页里分享时，只导出商品名称与数量：
+python mcd_chinese.py --mcp --export-web order-local.json
+```
 
-> 提交新版本后，可用浏览器打开在线体验链接。开发者运行 `python build_web.py` 即可重新生成网页。
+打开网页，选择「导入真实订单（脱敏 JSON）」，上传你刚刚生成的 `order-local.json`。**浏览器不会拿到 Token、原始订单号、门店、价格和个人信息。**
+
+### 2. 盯单模式
+
+```bash
+python mcd_chinese.py --watch --interval 30
+```
+
+`--watch` 只处理启动后新增的订单，默认 30 秒检查一次；首次只记住当前最新订单，不会把历史订单误判为新单。停止请按 `Ctrl+C`。
+
+### 3. 不用 Token 的命令行试玩
+
+以下命令都不联网、不需要任何令牌，先看到效果再决定要不要接真实订单：
+
+```bash
+python mcd_chinese.py --demo
+python mcd_chinese.py --items "巨无霸,中薯条,可乐" --lesson beiying
+python mcd_chinese.py --list
+python mcd_chinese.py --demo --md
+python mcd_chinese.py --demo --json
+```
+
+> **真实验证边界：** 本次重构针对 MCP 协议、订单结构、套餐和异常情况做了离线模拟测试，但**没有你的真实 Token，尚未在真实非空订单上完成重构版的端到端联调**。发布前请验证实际订单流程，详见 [`MCP_INTEGRATION.md`](MCP_INTEGRATION.md)。
 
 ## 📚 十六篇原创课文
 
@@ -59,68 +100,29 @@
 
 所有正文存放于 [`lessons.json`](lessons.json)。保留“文学语气”和巧妙的生活反差，不整段复制仍可能受版权保护的现代原著。餐品变量 `{main}`、`{side}`、`{drink}`、`{items}`、`{count}`、`{kinds}` 由订单替换。**没有课后习题。**
 
-## 🔗 真实麦当劳 MCP：不只是离线玩具
+## 🎬 网页版：不用 Token 的离线体验
 
-除了网页体验，项目还通过官方麦当劳 MCP 的 **`order-list`** 只读工具获取真实历史订单。实际调用流程：
+网页是同一套生成逻辑的浏览器版本，适合不想配置 Token 的人直接玩，也方便把结果发到手机。
 
-```text
-用户授权并在本机配置 Token
-           │
-           ▼
-麦当劳 MCP Server ─ order-list (只读)
-           │
-           ▼
-解析最近有效订单 → 识别餐品、份数与套餐子项
-           │
-           ▼
-      生成文学课文
-           │
-           ├─ 直接显示终端输出
-           └─ 导出仅含餐品名称/数量的 JSON → 浏览器生成并分享
-```
+1. **挑餐品**：点击巨无霸、薯条、可乐等快捷选项，也能输入自己的餐品。
+2. **选课文**：从十六篇原创文学小品中挑风格；每篇都有独立的小故事。
+3. **带走课文**：一键复制全文，或导出适合手机分享的高清 PNG 图片；长文按页导出。
 
-### 本地使用（Python 3.10+）
+**直接打开 [在线体验](https://miaoyhcat.github.io/mcd-chinese-class/)，无需账号、Token 或安装。** 网页仅在本地运算，没有广告、远程 AI 请求或第三方追踪。
 
-无需安装任何依赖：
+### 页面预览
 
-```bash
-python mcd_chinese.py --demo
-python mcd_chinese.py --items "巨无霸,中薯条,可乐" --lesson beiying
-python mcd_chinese.py --list
-python mcd_chinese.py --demo --md
-python mcd_chinese.py --demo --json
-```
+![麦门语文课桌面版界面](assets/preview-desktop.jpg)
 
-### 使用真实订单
+<details><summary>📱 查看手机端截图</summary>
 
-1. 从 [麦当劳 MCP 平台](https://open.mcd.cn/mcp) 按官方流程申请令牌。
-2. 在自己电脑的终端设置 `MCD_MCP_TOKEN` 环境变量，不要发在聊天或 Issue 里。
-3. 运行只读查询命令：
+![麦门语文课手机端](assets/preview-mobile.jpg)
 
-```bash
-# macOS / Linux
-export MCD_MCP_TOKEN="你的令牌"
+</details>
 
-# Windows PowerShell 另用此命令：
-# $env:MCD_MCP_TOKEN="你的令牌"
+项目的前端源码在 `web/`，成品 `docs/index.html` 为独立单文件，可直接由 GitHub Pages 托管。
 
-python mcd_chinese.py --mcp
-
-# 需要在网页里分享时，只导出商品名称与数量：
-python mcd_chinese.py --mcp --export-web order-local.json
-```
-
-打开网页，选择「导入真实订单（脱敏 JSON）」，上传你刚刚生成的 `order-local.json`。**浏览器不会拿到 Token、原始订单号、门店、价格和个人信息。**
-
-也可以使用：
-
-```bash
-python mcd_chinese.py --watch --interval 30
-```
-
-`--watch` 只处理启动后新增的订单，默认 30 秒检查一次；首次只记住当前最新订单，不会把历史订单误判为新单。停止请按 `Ctrl+C`。
-
-> **真实验证边界：** 本次重构针对 MCP 协议、订单结构、套餐和异常情况做了离线模拟测试，但**没有你的真实 Token，尚未在真实非空订单上完成重构版的端到端联调**。发布前请验证实际订单流程，详见 [`MCP_INTEGRATION.md`](MCP_INTEGRATION.md)。
+> 提交新版本后，可用浏览器打开在线体验链接。开发者运行 `python build_web.py` 即可重新生成网页。
 
 ## 🧱 技术架构
 
