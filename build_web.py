@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from console_utf8 import enable_utf8_stdout
+
 ROOT = Path(__file__).resolve().parent
 
 def safe_js(value):
@@ -31,4 +33,5 @@ def main():
     print(f'构建完成：{target.relative_to(ROOT)} · {len(html.encode("utf-8")):,} bytes · 全部资源内联')
 
 if __name__ == '__main__':
+    enable_utf8_stdout()
     main()

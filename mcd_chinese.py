@@ -10,11 +10,13 @@ from pathlib import Path
 
 from engine import InputError, as_markdown, as_plain, browser_payload, compose, load_lessons, parse_items
 from mcd_mcp import MCPClient, MCPError, fetch_latest_items, latest_valid_order, order_items
+from console_utf8 import enable_utf8_stdout
 
 DEMO_ITEMS = ['巨无霸', '中薯条', '可乐']
 
 
 def main(argv=None):
+    enable_utf8_stdout()
     p = argparse.ArgumentParser(description='麦门语文课 · 将餐品写成原创文学戏仿')
     group = p.add_mutually_exclusive_group()
     group.add_argument('--demo', action='store_true', help='演示订单（无网络）')

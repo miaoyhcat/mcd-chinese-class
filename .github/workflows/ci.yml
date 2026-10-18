@@ -1,19 +1,27 @@
 name: Verify project
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
   workflow_dispatch:
 jobs:
   core:
-    runs-on: ubuntu-latest
+    # 三个系统都跑。只跑 ubuntu 会漏掉一整类问题：英文 Windows 的控制台
+    # 是 cp1252，print 中文会把进程打崩；Windows 写文件默认用 CRLF，
+    # 会让「构建产物是否与提交一致」永远报红。这些在 Linux 上一次都复现不出来。
+    name: 核心检查（${{ matrix.os }}）
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m compileall -q engine.py mcd_chinese.py mcd_mcp.py build_web.py
+        run: python -m compileall -q engine.py mcd_chinese.py mcd_mcp.py build_web.py console_utf8.py
       - name: Rebuild website
         run: python build_web.py
       - name: Verify generated page checked in
@@ -21,6 +29,8 @@ jobs:
       - name: Unit tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
       - name: CLI smoke
+        # 显式用 bash：windows 默认是 pwsh，/tmp 不存在。
+        shell: bash
         run: |
           python mcd_chinese.py --demo --json > /tmp/mcd-demo.json
           python mcd_chinese.py --list

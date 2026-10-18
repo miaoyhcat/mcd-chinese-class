@@ -4,6 +4,8 @@ import urllib.error
 import sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from console_utf8 import enable_utf8_stdout
+enable_utf8_stdout()  # 英文 Windows 控制台是 cp1252，print 中文会崩
 from mcd_mcp import (MCPClient,MCPError,find_orders,latest_valid_order,order_items,
     extract_json,parse_envelope,unwrap_tool_result,fetch_latest_items)
 

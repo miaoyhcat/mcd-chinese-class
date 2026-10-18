@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from console_utf8 import enable_utf8_stdout
+enable_utf8_stdout()  # 英文 Windows 控制台是 cp1252，print 中文会崩
 import engine
 
 class EngineTests(unittest.TestCase):

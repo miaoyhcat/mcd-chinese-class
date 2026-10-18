@@ -4,6 +4,8 @@ import re
 import sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from console_utf8 import enable_utf8_stdout
+enable_utf8_stdout()  # 英文 Windows 控制台是 cp1252，print 中文会崩
 from engine import compose,stable_number
 try:
     from playwright.sync_api import sync_playwright

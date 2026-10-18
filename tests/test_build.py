@@ -6,6 +6,8 @@ import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from console_utf8 import enable_utf8_stdout
+enable_utf8_stdout()  # 英文 Windows 控制台是 cp1252，print 中文会崩
 import build_web
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -47,5 +49,21 @@ class BuildTests(unittest.TestCase):
         obj=json.loads(proc.stdout)
         self.assertTrue(obj['title'])
         self.assertNotIn('orderId',obj)
+
+    def test_survives_non_utf8_console(self):
+        """英文 Windows 的控制台是 cp1252，print 中文会 UnicodeEncodeError 崩掉进程。
+
+        用 PYTHONIOENCODING 在本机复现同样的条件，而不是等用户撞到才发现。
+        """
+        import os
+        env={**os.environ,'PYTHONIOENCODING':'cp1252'}
+        for label,args in [('命令行',['mcd_chinese.py','--demo']),
+                           ('构建',['build_web.py'])]:
+            with self.subTest(label):
+                proc=subprocess.run([sys.executable,*args],cwd=str(ROOT),env=env,
+                                    capture_output=True)
+                self.assertNotIn(b'UnicodeEncodeError',proc.stderr,
+                                 f'{label}在 cp1252 下崩了')
+                self.assertEqual(proc.returncode,0)
 
 if __name__=='__main__':unittest.main()
