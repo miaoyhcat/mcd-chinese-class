@@ -20,6 +20,26 @@ def check(name,ok):
     CHECKS.append((name,bool(ok)))
     print(('PASS' if ok else 'FAIL')+' '+name)
 
+def wait_text(page,selector,needle,timeout=3000):
+    """等某段文字出现，最多 timeout 毫秒。
+
+    导入文件走的是 FileReader，是异步的：set_input_files 返回时回调未必已经跑完。
+    直接读 inner_text 会读到一个还没更新的空值，测试时好时坏 ——
+    之前就因为这个在 CI 上闪断过一次。这里改成轮询，等到文字出现为止。
+    """
+    import time
+    end=time.time()+timeout/1000
+    last=''
+    while time.time()<end:
+        try:
+            last=page.locator(selector).inner_text()
+        except Exception:
+            last=''
+        if needle in last:
+            return True
+        page.wait_for_timeout(50)
+    return False
+
 def main():
     with sync_playwright() as p:
         # CI 使用 Playwright 安装的 Chromium，本地允许 CHROME_PATH 覆盖。
@@ -55,12 +75,12 @@ def main():
         # 导入真正的本地脱敏订单格式
         data={'format':'mcd-chinese-class/items-v1','items':[{'name':'麦香鱼','quantity':2},{'name':'雪碧','quantity':1}]}
         page.locator('#importFile').set_input_files({'name':'order-local.json','mimeType':'application/json','buffer':json.dumps(data,ensure_ascii=False).encode()})
-        check('导入订单成功', '麦香鱼 ×2' in page.locator('#lessonItems').inner_text())
+        check('导入订单成功', wait_text(page,'#lessonItems','麦香鱼 ×2'))
         check('导入订单无脚本错误',not errors)
         # 非法配置不得被当成脱敏订单（防止意外将原始订单数据直接渲染）
         illegal={'format':'mcd-chinese-class/items-v1','items':[{'name':'麦香鱼','quantity':1}],'orderId':'PRIVATE-ID'}
         page.locator('#importFile').set_input_files({'name':'raw.json','mimeType':'application/json','buffer':json.dumps(illegal,ensure_ascii=False).encode()})
-        check('带订单号的输入文件被拒绝', '额外字段' in page.locator('#error').inner_text())
+        check('带订单号的输入文件被拒绝', wait_text(page,'#error','额外字段'))
         check('拒绝输入后原课文仍可查看', '麦香鱼' in page.locator('#lessonItems').inner_text())
         # 压力测试：超长多段课文必须分成多页，不能截断或缩成不可读的小字。
         pages=page.evaluate('''() => {

@@ -44,7 +44,7 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(config['mcpServers']['mcd-mcp']['url'],'https://mcp.mcd.cn')
 
     def test_cli_json(self):
-        proc=subprocess.run([sys.executable,str(ROOT/'mcd_chinese.py'),'--items','巨无霸,薯条,可乐','--json'],text=True,capture_output=True)
+        proc=subprocess.run([sys.executable,str(ROOT/'mcd_chinese.py'),'--items','巨无霸,薯条,可乐','--json'],text=True,encoding='utf-8',capture_output=True)
         self.assertEqual(proc.returncode,0,proc.stderr)
         obj=json.loads(proc.stdout)
         self.assertTrue(obj['title'])
