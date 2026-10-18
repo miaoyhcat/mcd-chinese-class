@@ -8,6 +8,8 @@
 
 [🔎 **MCP 技术实现**](MCP_INTEGRATION.md) · [🎬 在线体验（网页版）](https://miaoyhcat.github.io/mcd-chinese-class/) · [📋 比赛报名 #716](https://github.com/M-China/mcd-developer-innovation-challenge/issues/716)
 
+[![M8ven](https://m8ven.ai/badge/mcp/miaoyhcat/mcd-chinese-class)](https://m8ven.ai/mcp/miaoyhcat/mcd-chinese-class?s=readme)
+
 </div>
 
 > **程序员创意开发大赛作品** · 无付费 API · Python 标准库 · 只读 MCP · 本地隐私优先 · 附加完整静态网页
